@@ -1,0 +1,6 @@
+*.db
+*.sqlite3
+/data/
+node_modules/
+.env
+firebase-key.json

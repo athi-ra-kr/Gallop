@@ -1,0 +1,272 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallop Admin | Announcements</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="robots" content="noindex">
+    <style>
+        :root {
+            --primary: #FF6B00;
+            --primary-glass: rgba(255, 107, 0, 0.1);
+            --bg-body: #F8F9FF;
+            --text-dark: #1B254B;
+            --text-grey: #A3AED0;
+            --white: #FFFFFF;
+            --border: #F1F4F9;
+            --shadow: 0 10px 40px rgba(112, 144, 176, 0.12);
+        }
+
+        /* Scrollbar Reset */
+        body::-webkit-scrollbar, .menu-scroll::-webkit-scrollbar { display: none; }
+        body, .menu-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-body);
+            margin: 0;
+            display: flex;
+            color: var(--text-dark);
+            font-size: 14px;
+        }
+
+        /* --- SIDEBAR STYLE --- */
+        .sidebar { 
+            width: 270px; 
+            height: 100vh; 
+            background: var(--white); 
+            position: fixed; 
+            border-right: 1px solid var(--border); 
+            z-index: 1000; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        .logo-box { padding: 30px; }
+        .logo-box img { width: 130px; }
+        .menu-scroll { padding: 0 20px; flex-grow: 1; overflow-y: auto; }
+
+        .sidebar-label { 
+            font-size: 10px; 
+            font-weight: 800; 
+            color: var(--text-grey); 
+            text-transform: uppercase; 
+            margin: 25px 0 12px 15px; 
+            letter-spacing: 1.2px; 
+        }
+        .nav-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 12px 18px; 
+            color: var(--text-grey); 
+            text-decoration: none; 
+            font-weight: 600; 
+            font-size: 13.5px; 
+            border-radius: 15px; 
+            margin-bottom: 4px; 
+            transition: 0.3s; 
+        }
+        .nav-item i { margin-right: 12px; font-size: 16px; width: 22px; text-align: center; }
+        .nav-item.active, .nav-item:hover { 
+            background: var(--primary); 
+            color: white; 
+            box-shadow: 0 8px 16px rgba(255, 107, 0, 0.2); 
+        }
+
+        .sidebar-footer { padding: 20px; border-top: 1px solid var(--border); }
+        .logout-btn {
+            display: flex; align-items: center; padding: 12px 18px;
+            color: #FF4D4D; text-decoration: none; font-weight: 700;
+            background: #FFF5F5; border-radius: 14px; font-size: 13px;
+        }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            margin-left: 270px;
+            padding: 40px;
+            width: calc(100% - 270px);
+            box-sizing: border-box;
+            min-height: 100vh;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 35px;
+        }
+
+        .page-header h1 { font-size: 28px; font-weight: 800; margin: 0; color: #1B254B; }
+        .page-header p { color: var(--text-grey); margin-top: 5px; font-size: 15px; }
+
+        /* --- TABLE CARD --- */
+        .content-card {
+            background: var(--white);
+            border-radius: 24px;
+            padding: 20px 25px;
+            box-shadow: var(--shadow);
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            text-align: left; color: var(--text-grey); padding: 15px 10px;
+            border-bottom: 1px solid var(--border); font-size: 11px;
+            text-transform: uppercase; letter-spacing: 0.8px;
+        }
+        td { padding: 18px 10px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 14px; color: var(--text-dark); }
+
+        .btn-add {
+            background: var(--primary); color: white; border: none; padding: 12px 24px;
+            border-radius: 14px; font-weight: 700; cursor: pointer; transition: 0.3s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .btn-add:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 107, 0, 0.3); }
+
+        .status-pill {
+            padding: 6px 12px; background: #E6FFFA; color: #01B574;
+            border-radius: 10px; font-size: 11px; font-weight: 700;
+        }
+
+        .action-delete { color: #EE5D50; font-size: 16px; transition: 0.2s; }
+        .action-delete:hover { color: #cf4a3f; }
+
+        /* --- MODAL --- */
+        .modal {
+            display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%;
+            background: rgba(27, 37, 75, 0.4); backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: white; margin: 10% auto; padding: 35px; width: 480px; border-radius: 24px; box-shadow: var(--shadow);
+        }
+        .form-input {
+            width: 100%; padding: 14px; margin: 8px 0 20px 0; border-radius: 14px; 
+            border: 1px solid #E0E5F2; background: #F4F7FE; font-family: 'Outfit', sans-serif;
+            box-sizing: border-box; font-size: 14px;
+        }
+        label { font-weight: 700; font-size: 11px; color: var(--text-grey); text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+<nav class="sidebar">
+    <div class="logo-box">
+        <img src="{% static 'Gallop Logo 2 (1) - Copy.png' %}" alt="Gallop Logo">
+    </div>
+
+    <div class="menu-scroll">
+        <div class="sidebar-label">Main System</div>
+        <a href="{% url 'dashboard' %}" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
+        <a href="{% url 'thinkbell' %}" class="nav-item"><i class="fas fa-brain"></i> ThinkBell</a>
+        <a href="{% url 'quiz_club' %}" class="nav-item"><i class="fas fa-trophy"></i> Quiz Club</a>
+        <a href="{% url 'newsbytes' %}" class="nav-item"><i class="fas fa-bolt"></i> NewsBytes</a>
+
+        <div class="sidebar-label">Engagement</div>
+        <a href="{% url 'announcements' %}" class="nav-item active"><i class="fas fa-bullhorn"></i> Announcements</a>
+        <a href="{% url 'quiz_shows' %}" class="nav-item"><i class="fas fa-play-circle"></i> Quiz Shows</a>
+
+        <div class="sidebar-label">Reports</div>
+        <a href="{% url 'all_students' %}" class="nav-item">
+            <i class="fas fa-users"></i> Students List
+        </a>
+    </div>
+
+    <div class="sidebar-footer">
+        <a href="{% url 'admin_logout' %}" class="logout-btn">
+            <i class="fas fa-power-off"></i> Sign Out
+        </a>
+    </div>
+</nav>
+
+<main class="main-content">
+    <div class="page-header">
+        <div>
+            <h1>Announcements</h1>
+            <p>Broadcast important messages to your students.</p>
+        </div>
+        <button class="btn-add" onclick="document.getElementById('addModal').style.display='block'">
+            <i class="fas fa-plus"></i> New Announcement
+        </button>
+    </div>
+
+    <div class="content-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Image</th>
+                    <th>Title</th>
+                    <th>Date Posted</th>
+                    <th>Status</th>
+                    <th style="text-align: right; padding-right: 20px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in announcements %}
+                <tr>
+                    <td>
+                        {% if item.image %}
+                            <img src="{{ item.image.url }}" width="65" height="40" style="border-radius:10px; object-fit: cover; background: #eee;">
+                        {% else %}
+                            <div style="width:65px; height:40px; background:#F4F7FE; border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--text-grey);">
+                                <i class="fas fa-image"></i>
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.title }}</td>
+                    <td>{{ item.date_posted|date:"M d, Y" }}</td>
+                    <td><span class="status-pill">Active</span></td>
+                    <td style="text-align: right; padding-right: 20px;">
+                        <a href="{% url 'delete_announcement' item.pk %}" class="action-delete" onclick="return confirm('Delete this announcement?')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-grey); padding: 50px;">
+                        <i class="fas fa-bullhorn" style="font-size: 30px; margin-bottom: 10px; display: block; opacity: 0.3;"></i>
+                        No announcements found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<div id="addModal" class="modal">
+    <div class="modal-content">
+        <h2 style="margin-top: 0; font-weight: 800; color: #1B254B; margin-bottom: 25px;">Create Announcement</h2>
+        <form method="POST" action="{% url 'announcements' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <label>Title</label>
+            <input type="text" name="title" class="form-input" placeholder="Enter headline..." required>
+
+            <label>Upload Cover Image</label>
+            <input type="file" name="image" class="form-input" accept="image/*" required>
+
+            <div style="display: flex; gap: 15px; margin-top: 10px;">
+                <button type="button" class="btn-add"
+                    style="background:#E0E5F2; color:var(--text-dark); flex: 1; justify-content: center;"
+                    onclick="document.getElementById('addModal').style.display='none'">
+                    Cancel
+                </button>
+                <button type="submit" class="btn-add" style="flex: 2; justify-content: center;">Post Announcement</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    window.onclick = function(event) {
+        var modal = document.getElementById('addModal');
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,20 @@
+<meta name="robots" content="noindex">
+<div style="padding: 20px; font-family: Arial;">
+    <h1>Exam Question</h1>
+    <p style="font-size: 1.2em; font-weight: bold;">{{ question.text }}</p>
+
+    <form method="POST">
+        {% csrf_token %}
+        <textarea name="student_answer" placeholder="Type your answer here..." style="width: 100%; height: 150px;"></textarea>
+        <br><br>
+        <button type="submit" style="padding: 10px 20px; background: green; color: white; border: none;">Submit Answer</button>
+    </form>
+
+    {% if result %}
+    <hr>
+    <div style="background: #f9f9f9; padding: 15px; border-left: 5px solid blue;">
+        <h3>AI Teacher's Feedback:</h3>
+        <p style="white-space: pre-wrap;">{{ result }}</p>
+    </div>
+    {% endif %}
+</div>

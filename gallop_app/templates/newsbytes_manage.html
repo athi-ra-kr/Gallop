@@ -1,0 +1,140 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gallop Admin | Manage NewsBytes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="robots" content="noindex">
+    <style>
+        :root {
+            --primary: #FF6B00;
+            --bg-body: #F8F9FF;
+            --text-dark: #1B254B;
+            --text-grey: #A3AED0;
+            --white: #FFFFFF;
+            --border: #F1F4F9;
+            --shadow: 0 10px 40px rgba(112, 144, 176, 0.12);
+            --danger: #EE5D50;
+        }
+
+        body { font-family: 'Outfit', sans-serif; background: var(--bg-body); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+
+        /* --- FULL SIDEBAR DESIGN --- */
+        .sidebar { width: 270px; height: 100vh; background: var(--white); position: fixed; border-right: 1px solid var(--border); z-index: 1000; display: flex; flex-direction: column; }
+        .logo-box { padding: 30px; }
+        .logo-box img { width: 130px; }
+        .menu-scroll { flex-grow: 1; overflow-y: auto; padding: 0 20px; scrollbar-width: none; }
+        .sidebar-label { font-size: 10px; font-weight: 800; color: var(--text-grey); text-transform: uppercase; margin: 25px 0 12px 15px; letter-spacing: 1.2px; }
+        .nav-item { display: flex; align-items: center; padding: 12px 18px; color: var(--text-grey); text-decoration: none; font-weight: 600; font-size: 13.5px; border-radius: 15px; margin-bottom: 4px; transition: 0.3s; }
+        .nav-item i { margin-right: 12px; font-size: 16px; width: 22px; text-align: center; }
+        .nav-item.active, .nav-item:hover { background: var(--primary); color: white; box-shadow: 0 8px 16px rgba(255, 107, 0, 0.25); }
+
+        .sidebar-footer { padding: 20px; border-top: 1px solid var(--border); }
+        .logout-btn { display: flex; align-items: center; padding: 12px 18px; color: var(--danger); text-decoration: none; font-weight: 700; background: #FFF5F5; border-radius: 14px; }
+
+        /* --- MAIN CONTENT (SCROLL HIDDEN) --- */
+        .main-content { flex-grow: 1; margin-left: 270px; height: 100vh; overflow-y: auto; padding: 40px; box-sizing: border-box; scrollbar-width: none; }
+        .main-content::-webkit-scrollbar { display: none; }
+
+        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        h1 { font-size: 26px; font-weight: 800; margin: 0; color: var(--text-dark); letter-spacing: -0.5px; }
+
+        .btn-add { background: var(--primary); color: white; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 700; font-size: 13px; transition: 0.3s; }
+        .btn-add:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 107, 0, 0.3); }
+
+        /* --- TABLE STYLING --- */
+        .list-card { background: var(--white); border-radius: 24px; padding: 25px; box-shadow: var(--shadow); border: 1px solid var(--border); min-height: 400px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; color: var(--text-grey); padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { padding: 15px 10px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 13px; color: var(--text-dark); }
+
+        .slide-img { width: 45px; height: 45px; border-radius: 10px; object-fit: cover; background: #f0f2f5; }
+        .badge-count { background: #F4F7FE; color: var(--primary); padding: 4px 10px; border-radius: 8px; font-size: 11px; }
+        .action-link { text-decoration: none; font-weight: 700; font-size: 12px; margin-left: 15px; transition: 0.2s; }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="logo-box"><img src="{% static 'Gallop Logo 2 (1) - Copy.png' %}" alt="Logo"></div>
+        <div class="menu-scroll">
+            <div class="sidebar-label">Main System</div>
+            <a href="{% url 'dashboard' %}" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
+            <a href="{% url 'thinkbell' %}" class="nav-item"><i class="fas fa-brain"></i> ThinkBell</a>
+            <a href="{% url 'quiz_club' %}" class="nav-item"><i class="fas fa-trophy"></i> Quiz Club</a>
+            <a href="{% url 'newsbytes' %}" class="nav-item active"><i class="fas fa-bolt"></i> NewsBytes</a>
+
+            <div class="sidebar-label">Engagement</div>
+            <div class="sidebar-label">Engagement</div>
+            <a href="{% url 'announcements' %}" class="nav-item"><i class="fas fa-bullhorn"></i> Announcements</a>
+            <a href="{% url 'quiz_shows' %}" class="nav-item"><i class="fas fa-play-circle"></i> Quiz Shows</a>
+
+         <div class="sidebar-label">Reports</div>
+            <a href="{% url 'all_students' %}" class="nav-item {% if request.resolver_match.url_name == 'all_students' %}active{% endif %}">
+          <i class="fas fa-users"></i> Students List
+            </a>
+            </div>
+
+        </div>
+        <div class="sidebar-footer">
+            <a href="{% url 'admin_logout' %}" class="logout-btn"><i class="fas fa-power-off" style="margin-right:12px;"></i> Sign Out</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div style="margin-bottom: 10px;">
+            <a href="{% url 'newsbytes' %}" style="text-decoration:none; color: var(--text-grey); font-weight:600;"><i class="fas fa-arrow-left" style="margin-right:5px;"></i> Back to Sections</a>
+        </div>
+
+        <div class="header-flex">
+            <div>
+                <h1>Section: {{ section.name }}</h1>
+                <p style="color: var(--text-grey); margin: 5px 0 0 0;">Manage MCQs & Daily News Content</p>
+            </div>
+            <a href="{% url 'add_news_mcq' section.id %}" class="btn-add">
+                <i class="fas fa-plus" style="margin-right:8px;"></i> Add New MCQ
+            </a>
+        </div>
+
+        <div class="list-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">#</th>
+                        <th style="width: 70px;">Image</th>
+                        <th>MCQ Content</th>
+                        <th>Correct Option</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for q in questions %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            {% if q.image %}<img src="{{ q.image.url }}" class="slide-img">
+                            {% else %}<div class="slide-img" style="display:flex;align-items:center;justify-content:center;"><i class="fas fa-image" style="color:#ccc;"></i></div>{% endif %}
+                        </td>
+                        <td>{{ q.content|truncatechars:60 }}</td>
+                        <td><span class="badge-count">Option {{ q.correct_option }}</span></td>
+                        <td style="text-align: right;">
+                            <a href="{% url 'edit_news_mcq' q.id %}" class="action-link" style="color: #4A90E2;">Edit</a>
+                            <a href="{% url 'delete_news_mcq' q.id %}" class="action-link" style="color: #EE5D50;" onclick="return confirm('Delete?')">Delete</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 100px; color: var(--text-grey);">
+                            <i class="fas fa-folder-open" style="display: block; font-size: 40px; margin-bottom: 15px; opacity: 0.3;"></i>
+                            No questions found. Click "Add New MCQ" to begin.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>

@@ -1,0 +1,330 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallop Admin | Quiz Shows</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #FF6B00;
+            --bg-body: #F8F9FF;
+            --text-dark: #1B254B;
+            --text-grey: #A3AED0;
+            --white: #FFFFFF;
+            --border: #F1F4F9;
+            --shadow: 0 10px 40px rgba(112, 144, 176, 0.12);
+            --danger: #EE5D50;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-body);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Updated Sidebar Styling */
+        .sidebar {
+            width: 270px;
+            height: 100vh;
+            background: var(--white);
+            position: fixed;
+            border-right: 1px solid var(--border);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-box { padding: 30px; }
+        .logo-box img { width: 130px; }
+
+        .menu-scroll { padding: 0 20px; flex-grow: 1; overflow-y: auto; }
+        .menu-scroll::-webkit-scrollbar { width: 4px; }
+        .menu-scroll::-webkit-scrollbar-thumb { background: #E0E5F2; border-radius: 10px; }
+
+        .sidebar-label {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-grey);
+            text-transform: uppercase;
+            margin: 25px 0 12px 15px;
+            letter-spacing: 1.2px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 18px;
+            color: var(--text-grey);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 13.5px;
+            border-radius: 15px;
+            margin-bottom: 4px;
+            transition: 0.3s;
+        }
+
+        .nav-item i { margin-right: 12px; font-size: 16px; width: 22px; text-align: center; }
+        .nav-item.active, .nav-item:hover {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 8px 16px rgba(255, 107, 0, 0.2);
+        }
+
+        .sidebar-footer { padding: 20px; border-top: 1px solid var(--border); }
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            padding: 12px 18px;
+            color: var(--danger);
+            text-decoration: none;
+            font-weight: 700;
+            background: #FFF5F5;
+            border-radius: 14px;
+            font-size: 13px;
+        }
+
+        /* Main Layout */
+        .main-content {
+            margin-left: 270px;
+            flex-grow: 1;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+
+        .header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 35px;
+        }
+
+        .header-flex h1 { color: var(--text-dark); margin: 0; font-size: 28px; font-weight: 800; }
+
+        /* Table Card */
+        .content-card {
+            background: var(--white);
+            border-radius: 24px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            text-align: left;
+            color: var(--text-grey);
+            padding: 15px 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        td {
+            padding: 18px 12px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+
+        .yt-link {
+            color: #FF0000;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        /* Buttons */
+        .btn-add {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-add:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 107, 0, 0.3); }
+
+        /* Modal Popup */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(27,37,75,0.4);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 8% auto;
+            padding: 35px;
+            width: 480px;
+            border-radius: 30px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px;
+            margin: 8px 0 20px 0;
+            border-radius: 14px;
+            border: 1px solid #E0E5F2;
+            background: #F4F7FE;
+            font-family: 'Outfit';
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        .form-label { font-size: 11px; color: var(--text-grey); font-weight: 700; text-transform: uppercase; margin-left: 5px; }
+
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="logo-box">
+            <img src="{% static 'Gallop Logo 2 (1) - Copy.png' %}" alt="Logo">
+        </div>
+
+        <div class="menu-scroll">
+            <div class="sidebar-label">Main System</div>
+            <a href="{% url 'dashboard' %}" class="nav-item">
+                <i class="fas fa-th-large"></i> Dashboard
+            </a>
+            <a href="{% url 'thinkbell' %}" class="nav-item">
+                <i class="fas fa-brain"></i> ThinkBell
+            </a>
+            <a href="{% url 'quiz_club' %}" class="nav-item">
+                <i class="fas fa-trophy"></i> Quiz Club
+            </a>
+            <a href="{% url 'newsbytes' %}" class="nav-item">
+                <i class="fas fa-bolt"></i> NewsBytes
+            </a>
+
+            <div class="sidebar-label">Engagement</div>
+            <a href="{% url 'announcements' %}" class="nav-item">
+                <i class="fas fa-bullhorn"></i> Announcements
+            </a>
+            <a href="{% url 'quiz_shows' %}" class="nav-item active">
+                <i class="fas fa-play-circle"></i> Quiz Shows
+            </a>
+
+            <div class="sidebar-label">Reports</div>
+            <a href="{% url 'all_students' %}" class="nav-item">
+                <i class="fas fa-users"></i> Students List
+            </a>
+        </div>
+
+        <div class="sidebar-footer">
+            <a href="{% url 'admin_logout' %}" class="logout-btn">
+                <i class="fas fa-power-off" style="margin-right:12px;"></i> Sign Out
+            </a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="header-flex">
+            <div>
+                <h1>Quiz Shows</h1>
+                <p style="color: var(--text-grey); margin: 5px 0 0 0;">Manage your video quiz content</p>
+            </div>
+            <button class="btn-add" onclick="openModal()">
+                <i class="fas fa-plus"></i> New Quiz Show
+            </button>
+        </div>
+
+        <div class="content-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Video Link</th>
+                        <th>Date Added</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="quizTableBody">
+                    {% for item in shows %}
+                    <tr>
+                        <td>{{ item.title }}</td>
+                        <td>
+                            <a href="{{ item.youtube_link }}" target="_blank" class="yt-link">
+                                <i class="fab fa-youtube"></i> Watch Episode
+                            </a>
+                        </td>
+                        <td style="color: var(--text-grey);">{{ item.created_at|date:"M d, Y" }}</td>
+                        <td style="text-align: right;">
+                            <a href="{% url 'delete_quiz_show' item.pk %}"
+                               onclick="return confirm('Are you sure you want to delete this show?')"
+                               style="color: #EE5D50; font-size: 18px; margin-right: 10px;">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-grey); padding: 60px;">
+                            <i class="fas fa-tv" style="font-size: 40px; margin-bottom: 15px; display: block; opacity: 0.3;"></i>
+                            No quiz shows found. Click "New Quiz Show" to start.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin: 0 0 25px 0; color: var(--text-dark);">Create New Show</h2>
+            <form method="POST" action="{% url 'quiz_shows' %}">
+                {% csrf_token %}
+                <label class="form-label">Show Title</label>
+                <input type="text" name="title" class="form-input" placeholder="e.g. Weekly Trivia #1" required>
+
+                <label class="form-label">YouTube Link</label>
+                <input type="url" name="youtube_link" class="form-input" placeholder="https://www.youtube.com/watch?v=..." required>
+
+                <label class="form-label">Short Description</label>
+                <textarea name="description" class="form-input" rows="3" placeholder="What is this episode about?"></textarea>
+
+                <div style="display: flex; gap: 15px; margin-top: 10px;">
+                    <button type="submit" class="btn-add" style="flex: 2; justify-content: center;">Create Show</button>
+                    <button type="button" class="btn-add"
+                            style="background:#E0E5F2; color:var(--text-dark); flex: 1; justify-content: center;"
+                            onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const modal = document.getElementById('addModal');
+        function openModal() { modal.style.display = 'block'; }
+        function closeModal() { modal.style.display = 'none'; }
+        window.onclick = function(event) {
+            if (event.target == modal) { closeModal(); }
+        }
+    </script>
+</body>
+</html>

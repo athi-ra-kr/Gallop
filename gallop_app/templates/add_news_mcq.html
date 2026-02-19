@@ -1,0 +1,81 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create News MCQ | Gallop Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="robots" content="noindex">
+    <style>
+        :root {
+            --primary: #FF6B00;
+            --bg-body: #F8F9FF;
+            --text-dark: #1B254B;
+            --text-grey: #A3AED0;
+            --white: #FFFFFF;
+            --border: #F1F4F9;
+            --shadow: 0 10px 40px rgba(112, 144, 176, 0.12);
+        }
+
+        body { font-family: 'Outfit', sans-serif; background: var(--bg-body); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+
+        .sidebar { width: 270px; height: 100vh; background: var(--white); position: fixed; border-right: 1px solid var(--border); }
+        .main-content { flex-grow: 1; margin-left: 270px; height: 100vh; overflow-y: auto; padding: 40px; box-sizing: border-box; }
+
+        .form-card { background: var(--white); border-radius: 25px; padding: 40px; box-shadow: var(--shadow); max-width: 900px; }
+
+        label { font-size: 11px; font-weight: 800; color: var(--text-grey); text-transform: uppercase; display: block; margin-top: 25px; margin-bottom: 10px; letter-spacing: 0.5px; }
+        input, select, textarea { width: 100%; padding: 14px 18px; border: 1px solid var(--border); border-radius: 15px; font-family: 'Outfit'; background: #F8F9FF; color: var(--text-dark); outline: none; }
+
+        /* The MCQ Assessment Box */
+        .mcq-container { background: #FFF5EE; border: 2px solid #FFE0CC; padding: 35px; border-radius: 24px; margin-top: 30px; }
+        .grid-options { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+        .btn-submit { background: var(--primary); color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 800; width: 100%; margin-top: 40px; cursor: pointer; box-shadow: 0 10px 20px rgba(255, 107, 0, 0.2); }
+    </style>
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo-box"><img src="{% static 'Gallop Logo 2 (1) - Copy.png' %}" alt="Logo"></div>
+        </nav>
+
+    <main class="main-content">
+        <div style="margin-bottom: 15px;">
+            <a href="{% url 'manage_news_section' section.id %}" style="text-decoration:none; color: var(--text-grey); font-weight:600;"><i class="fas fa-arrow-left"></i> Back to MCQs</a>
+        </div>
+
+        <h1>Create NewsBytes MCQ</h1>
+
+        <form method="POST" enctype="multipart/form-data" class="form-card">
+            {% csrf_token %}
+
+            <label>Question Content</label>
+            <textarea name="content" rows="3" placeholder="Enter news question here..." required></textarea>
+
+            <label>Cover Image (Optional)</label>
+            <input type="file" name="image">
+
+            <div class="mcq-container">
+                <h3 style="margin-top:0; color:var(--primary); font-weight: 800; font-size: 16px;">Assessment Details</h3>
+                <div class="grid-options">
+                    <div><label>Option A</label><input type="text" name="opt_a" required></div>
+                    <div><label>Option B</label><input type="text" name="opt_b" required></div>
+                    <div><label>Option C</label><input type="text" name="opt_c" required></div>
+                    <div><label>Option D</label><input type="text" name="opt_d" required></div>
+                </div>
+
+                <label>Correct Answer</label>
+                <select name="correct_option">
+                    <option value="A">Option A</option>
+                    <option value="B">Option B</option>
+                    <option value="C">Option C</option>
+                    <option value="D">Option D</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-submit">Publish MCQ</button>
+        </form>
+    </main>
+</body>
+</html>

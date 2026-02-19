@@ -1,0 +1,283 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex">
+<title>Gallop Admin | {% if is_edit %}Edit{% else %}Create{% endif %} Quiz Module</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+:root{
+--primary:#FF6B00;
+--bg-body:#F8F9FF;
+--text-dark:#1B254B;
+--text-grey:#A3AED0;
+--white:#FFFFFF;
+--border:#F1F4F9;
+--shadow:0 10px 40px rgba(112,144,176,0.12);
+}
+
+/* Hide scrollbars */
+body::-webkit-scrollbar,.menu-scroll::-webkit-scrollbar{display:none;}
+body,.menu-scroll{-ms-overflow-style:none;scrollbar-width:none;}
+
+body{
+font-family:'Outfit',sans-serif;
+background:var(--bg-body);
+margin:0;
+display:flex;
+color:var(--text-dark);
+height:100vh;
+overflow:hidden;
+}
+
+/* SIDEBAR (Same as ThinkBell) */
+.sidebar{
+width:270px;
+height:100vh;
+background:var(--white);
+position:fixed;
+display:flex;
+flex-direction:column;
+border-right:1px solid var(--border);
+z-index:1000;
+}
+
+.logo-box{padding:30px;display:flex;align-items:center;}
+.logo-box img{width:130px;}
+
+.menu-scroll{flex-grow:1;overflow-y:auto;padding:0 20px;}
+
+.sidebar-label{
+font-size:10px;font-weight:800;color:var(--text-grey);
+text-transform:uppercase;letter-spacing:1.2px;
+margin:25px 0 12px 15px;
+}
+
+.nav-item{
+display:flex;align-items:center;padding:12px 18px;
+color:var(--text-grey);text-decoration:none;
+font-weight:600;font-size:13.5px;border-radius:15px;
+margin-bottom:4px;transition:.3s;
+}
+
+.nav-item i{margin-right:12px;font-size:16px;width:22px;text-align:center;}
+
+.nav-item:hover,.nav-item.active{
+background:var(--primary);
+color:white;
+box-shadow:0 8px 16px rgba(255,107,0,.25);
+}
+
+.sidebar-footer{padding:20px;border-top:1px solid var(--border);}
+.logout-btn{
+display:flex;align-items:center;padding:12px 18px;
+color:#EE5D50;text-decoration:none;font-weight:700;
+background:#FFF5F5;border-radius:14px;font-size:13px;
+}
+
+/* MAIN */
+.main-content{
+margin-left:270px;
+padding:40px;
+width:calc(100% - 270px);
+box-sizing:border-box;
+height:100vh;
+overflow-y:auto;
+}
+
+.back-link{
+display:inline-flex;align-items:center;
+text-decoration:none;color:var(--text-grey);
+font-weight:600;font-size:14px;margin-bottom:20px;
+}
+.back-link:hover{color:var(--primary);}
+
+.form-card{
+background:white;border-radius:25px;padding:40px;
+box-shadow:var(--shadow);border:1px solid var(--border);
+margin-bottom:40px;
+}
+
+label{
+font-size:11px;font-weight:800;color:var(--text-grey);
+text-transform:uppercase;display:block;margin-top:25px;
+letter-spacing:.5px;
+}
+
+input,textarea,select{
+width:100%;padding:14px;border:1px solid var(--border);
+border-radius:12px;background:#F8F9FF;outline:none;
+font-family:'Outfit';margin-top:10px;box-sizing:border-box;
+}
+
+.slide-box{
+background:#FDFDFF;border-radius:20px;padding:30px;
+margin-top:30px;border:1px dashed #D1D9E8;position:relative;
+}
+
+.mcq-box{
+background:#FFF5EE;border:2px solid #FFE0CC;
+padding:30px;border-radius:20px;margin-top:40px;
+}
+
+.grid-options{
+display:grid;grid-template-columns:1fr 1fr;gap:15px;
+}
+
+.btn-submit{
+background:var(--primary);color:white;border:none;
+width:100%;padding:20px;border-radius:18px;
+font-weight:800;margin-top:40px;cursor:pointer;
+box-shadow:0 8px 16px rgba(255,107,0,.2);
+}
+</style>
+</head>
+
+<body>
+
+<nav class="sidebar">
+<div class="logo-box">
+<img src="{% static 'Gallop Logo 2 (1) - Copy.png' %}">
+</div>
+
+<div class="menu-scroll">
+
+<div class="sidebar-label">Main System</div>
+<a href="{% url 'dashboard' %}" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
+<a href="{% url 'thinkbell' %}" class="nav-item"><i class="fas fa-brain"></i> ThinkBell</a>
+<a href="{% url 'quiz_club' %}" class="nav-item active"><i class="fas fa-trophy"></i> Quiz Club</a>
+<a href="{% url 'newsbytes' %}" class="nav-item"><i class="fas fa-bolt"></i> NewsBytes</a>
+
+<div class="sidebar-label">Engagement</div>
+<a href="{% url 'announcements' %}" class="nav-item"><i class="fas fa-bullhorn"></i> Announcements</a>
+<a href="{% url 'quiz_shows' %}" class="nav-item"><i class="fas fa-play-circle"></i> Quiz Shows</a>
+
+<div class="sidebar-label">Reports</div>
+<a href="{% url 'all_students' %}" class="nav-item"><i class="fas fa-users"></i> Students List</a>
+
+</div>
+
+<div class="sidebar-footer">
+<a href="{% url 'admin_logout' %}" class="logout-btn">
+<i class="fas fa-power-off" style="margin-right:12px;"></i> Sign Out
+</a>
+</div>
+</nav>
+
+<main class="main-content">
+
+<a href="{% url 'manage_quiz_club_questions' section.id %}" class="back-link">
+<i class="fas fa-arrow-left" style="margin-right:8px;"></i> Back to Module List
+</a>
+
+<h1>{% if is_edit %}Edit{% else %}Create{% endif %} Quiz Module</h1>
+
+<form method="POST"
+action="{% if is_edit %}{% url 'edit_quiz_club_question' question.id %}{% else %}{% url 'add_quiz_club_question' %}{% endif %}"
+enctype="multipart/form-data"
+class="form-card">
+
+{% csrf_token %}
+
+{% if not is_edit %}
+<input type="hidden" name="section_id" value="{{ section.id }}">
+{% endif %}
+
+<label>Module Title</label>
+<input type="text" name="title" value="{{ question.title }}" required>
+
+<div id="slide-container">
+
+{% if slides %}
+{% for slide in slides %}
+<div class="slide-box">
+<i class="fas fa-times-circle" style="float:right;color:#EE5D50;cursor:pointer;" onclick="this.parentElement.remove()"></i>
+
+<span style="color:var(--primary);font-weight:800;">SLIDE #{{ forloop.counter }}</span>
+
+{% if slide.image %}
+<div style="margin:10px 0;">
+<img src="{{ slide.image.url }}" style="width:80px;border-radius:8px;">
+</div>
+{% endif %}
+
+<label>Change Image</label>
+<input type="file" name="slide_image[]">
+
+<label>Slide Content</label>
+<textarea name="slide_text[]" rows="3" required>{{ slide.text_content }}</textarea>
+</div>
+{% endfor %}
+{% else %}
+<div class="slide-box">
+<span style="color:var(--primary);font-weight:800;">SLIDE #1</span>
+<input type="file" name="slide_image[]">
+<textarea name="slide_text[]" rows="3" placeholder="Enter slide content..." required></textarea>
+</div>
+{% endif %}
+
+</div>
+
+<button type="button" onclick="addSlide()"
+style="margin-top:20px;border:none;background:#E0E5F2;padding:12px;border-radius:12px;font-weight:700;cursor:pointer;">
++ Add Slide
+</button>
+
+<div class="mcq-box">
+<h3 style="margin-top:0;color:var(--primary);">Final Assessment (MCQ)</h3>
+
+<div class="grid-options">
+<div><label>Option A</label><input type="text" name="opt_a" value="{{ question.option_a|default:'' }}" required></div>
+<div><label>Option B</label><input type="text" name="opt_b" value="{{ question.option_b|default:'' }}" required></div>
+<div><label>Option C</label><input type="text" name="opt_c" value="{{ question.option_c|default:'' }}" required></div>
+<div><label>Option D</label><input type="text" name="opt_d" value="{{ question.option_d|default:'' }}" required></div>
+</div>
+
+<label>Correct Answer</label>
+<select name="correct_option" required>
+<option value="A" {% if question.correct_option == "A" %}selected{% endif %}>Option A</option>
+<option value="B" {% if question.correct_option == "B" %}selected{% endif %}>Option B</option>
+<option value="C" {% if question.correct_option == "C" %}selected{% endif %}>Option C</option>
+<option value="D" {% if question.correct_option == "D" %}selected{% endif %}>Option D</option>
+</select>
+</div>
+
+<label>Expected Answer Keywords</label>
+<input type="text" name="keywords" value="{{ question.expected_answer_keywords }}">
+
+<button type="submit" class="btn-submit">
+{% if is_edit %}Save Changes{% else %}Create Module{% endif %}
+</button>
+
+</form>
+</main>
+
+<script>
+let slideCount=document.querySelectorAll('.slide-box').length||1;
+
+function addSlide(){
+slideCount++;
+const container=document.getElementById('slide-container');
+
+const div=document.createElement('div');
+div.className='slide-box';
+
+div.innerHTML=`
+<i class="fas fa-times-circle" style="float:right;color:#EE5D50;cursor:pointer;" onclick="this.parentElement.remove()"></i>
+<span style="color:var(--primary);font-weight:800;">SLIDE #${slideCount}</span>
+<label>Slide Image</label>
+<input type="file" name="slide_image[]">
+<label>Slide Content</label>
+<textarea name="slide_text[]" rows="3" required></textarea>
+`;
+
+container.appendChild(div);
+}
+</script>
+
+</body>
+</html>

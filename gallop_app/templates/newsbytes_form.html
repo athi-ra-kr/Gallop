@@ -1,0 +1,144 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gallop Admin | {% if is_edit %}Update{% else %}Create{% endif %} NewsBytes MCQ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="robots" content="noindex">
+    <style>
+        :root {
+            --primary: #FF6B00;
+            --bg-body: #F8F9FF;
+            --text-dark: #1B254B;
+            --text-grey: #A3AED0;
+            --white: #FFFFFF;
+            --border: #F1F4F9;
+            --shadow: 0 10px 40px rgba(112, 144, 176, 0.12);
+        }
+
+        body { font-family: 'Outfit', sans-serif; background: var(--bg-body); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+
+        /* --- SIDEBAR --- */
+        .sidebar { width: 270px; height: 100vh; background: var(--white); position: fixed; border-right: 1px solid var(--border); z-index: 1000; display: flex; flex-direction: column; }
+        .logo-box { padding: 30px; }
+        .logo-box img { width: 130px; }
+        .menu-scroll { flex-grow: 1; overflow-y: auto; padding: 0 20px; scrollbar-width: none; }
+        .sidebar-label { font-size: 10px; font-weight: 800; color: var(--text-grey); text-transform: uppercase; margin: 25px 0 12px 15px; letter-spacing: 1.2px; }
+        .nav-item { display: flex; align-items: center; padding: 12px 18px; color: var(--text-grey); text-decoration: none; font-weight: 600; font-size: 13.5px; border-radius: 15px; margin-bottom: 4px; transition: 0.3s; }
+        .nav-item i { margin-right: 12px; font-size: 16px; width: 22px; text-align: center; }
+        .nav-item.active { background: var(--primary); color: white; box-shadow: 0 8px 16px rgba(255, 107, 0, 0.25); }
+
+        .sidebar-footer { padding: 20px; border-top: 1px solid var(--border); }
+        .logout-btn { display: flex; align-items: center; padding: 12px 18px; color: #EE5D50; text-decoration: none; font-weight: 700; background: #FFF5F5; border-radius: 14px; }
+
+        /* --- MAIN CONTENT --- */
+        .main-content { flex-grow: 1; margin-left: 270px; height: 100vh; overflow-y: auto; padding: 40px; box-sizing: border-box; scrollbar-width: none; }
+        .main-content::-webkit-scrollbar { display: none; }
+
+        .navigation-top { margin-bottom: 15px; }
+        .back-link { text-decoration: none; color: var(--text-grey); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; }
+        .back-link i { margin-right: 8px; font-size: 12px; }
+
+        h1 { font-size: 32px; font-weight: 800; margin: 0 0 35px 0; color: var(--text-dark); letter-spacing: -0.5px; }
+
+        .form-card { background: var(--white); border-radius: 25px; padding: 40px; box-shadow: var(--shadow); }
+
+        label { font-size: 11px; font-weight: 800; color: var(--text-grey); text-transform: uppercase; display: block; margin-top: 25px; margin-bottom: 10px; letter-spacing: 0.5px; }
+        input, select, textarea { width: 100%; padding: 14px 18px; border: 1px solid var(--border); border-radius: 15px; font-family: 'Outfit'; font-size: 14px; box-sizing: border-box; background: #F8F9FF; color: var(--text-dark); outline: none; }
+
+        /* MCQ Assessment model */
+        .mcq-container { background: #FFF5EE; border: 2px solid #FFE0CC; padding: 35px; border-radius: 24px; margin-top: 30px; }
+        .grid-options { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+        .btn-submit { background: var(--primary); color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 800; width: 100%; margin-top: 40px; cursor: pointer; box-shadow: 0 10px 20px rgba(255, 107, 0, 0.2); transition: 0.3s; }
+        .btn-submit:hover { transform: translateY(-2px); background: #E05E00; }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="logo-box"><img src="{% static 'Gallop Logo 2 (1) - Copy.png' %}" alt="Logo"></div>
+        <div class="menu-scroll">
+            <div class="sidebar-label">Main System</div>
+            <a href="{% url 'dashboard' %}" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
+            <a href="{% url 'thinkbell' %}" class="nav-item"><i class="fas fa-brain"></i> ThinkBell</a>
+            <a href="{% url 'quiz_club' %}" class="nav-item"><i class="fas fa-trophy"></i> Quiz Club</a>
+            <a href="{% url 'newsbytes' %}" class="nav-item active"><i class="fas fa-bolt"></i> NewsBytes</a>
+
+            <div class="sidebar-label">Engagement</div>
+            <a href="{% url 'announcements' %}" class="nav-item"><i class="fas fa-bullhorn"></i> Announcements</a>
+            <a href="{% url 'quiz_shows' %}" class="nav-item"><i class="fas fa-play-circle"></i> Quiz Shows</a>
+
+         <div class="sidebar-label">Reports</div>
+            <a href="{% url 'all_students' %}" class="nav-item {% if request.resolver_match.url_name == 'all_students' %}active{% endif %}">
+          <i class="fas fa-users"></i> Students List
+            </a>
+         </div>
+        </div>
+        <div class="sidebar-footer">
+            <a href="{% url 'admin_logout' %}" class="logout-btn"><i class="fas fa-power-off" style="margin-right:12px;"></i> Sign Out</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="navigation-top">
+            <a href="{% url 'manage_news_section' section.id %}" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to MCQs
+            </a>
+        </div>
+
+        <h1>{% if is_edit %}Update{% else %}Create{% endif %} NewsBytes MCQ</h1>
+
+        <form method="POST" enctype="multipart/form-data" class="form-card">
+            {% csrf_token %}
+
+            <label>Question Content</label>
+            <textarea name="content" rows="3" placeholder="Enter news question here..." required>{{ mcq.content }}</textarea>
+
+            <label>Cover Image (Optional)</label>
+            {% if mcq.image %}
+                <img src="{{ mcq.image.url }}" style="width:100px; border-radius:10px; margin-bottom:10px; display:block; border: 1px solid var(--border);">
+            {% endif %}
+            <input type="file" name="image" accept="image/*">
+
+            <div class="mcq-container">
+                <h3 style="margin-top:0; color:var(--primary); font-weight: 800; font-size: 16px;">Assessment Details</h3>
+
+                <div class="grid-options">
+                    <div>
+                        <label>Option A</label>
+                        <input type="text" name="opt_a" value="{{ mcq.option_a }}" placeholder="Enter Option A" required>
+                    </div>
+                    <div>
+                        <label>Option B</label>
+                        <input type="text" name="opt_b" value="{{ mcq.option_b }}" placeholder="Enter Option B" required>
+                    </div>
+                    <div>
+                        <label>Option C</label>
+                        <input type="text" name="opt_c" value="{{ mcq.option_c }}" placeholder="Enter Option C" required>
+                    </div>
+                    <div>
+                        <label>Option D</label>
+                        <input type="text" name="opt_d" value="{{ mcq.option_d }}" placeholder="Enter Option D" required>
+                    </div>
+                </div>
+
+                <label>Correct Answer</label>
+                <select name="correct_option" required>
+                    <option value="A" {% if mcq.correct_option == "A" %}selected{% endif %}>Option A</option>
+                    <option value="B" {% if mcq.correct_option == "B" %}selected{% endif %}>Option B</option>
+                    <option value="C" {% if mcq.correct_option == "C" %}selected{% endif %}>Option C</option>
+                    <option value="D" {% if mcq.correct_option == "D" %}selected{% endif %}>Option D</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn-submit">
+                {% if is_edit %}Save Changes{% else %}Publish MCQ{% endif %}
+            </button>
+        </form>
+    </main>
+
+</body>
+</html>
