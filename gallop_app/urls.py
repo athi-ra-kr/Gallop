@@ -1,19 +1,29 @@
 from django.urls import path
 from . import views
 from .views import (
+    NewsBytesSectionAPI,
+    QuizClubSectionAPI,
     TestAPI,
     QuizClubProgressAPI,
     NewsBytesProgressAPI,
     FullProgressAPI,
     AIExamAPI,
     LeaderboardAPI,
-    AnnouncementAPI, 
-    QuizShowAPI, 
+    AnnouncementAPI,
+    QuizShowAPI,
     LiveEventAPI,
-    CheckPhoneAPI, 
-    SavePhoneAPI
+    CheckPhoneAPI,
+    SavePhoneAPI,
+    QuizClubQuestionAPI,
+    SubmitQuizClubMCQAPI,
+    NewsBytesQuestionAPI,
+    SubmitNewsBytesMCQAPI,
+    AIExamQuestionAPI,
+    ThinkBellSectionAPI,
+    ThinkBellQuestionAPI,
+    SubmitThinkBellAIAPI,
 )
-
+ 
 
 
 urlpatterns = [
@@ -68,19 +78,54 @@ urlpatterns = [
     path('exam/<int:question_id>/', views.student_exam_view, name='student-exam'),
     path('submit-quizclub/<int:question_id>/', views.submit_quizclub_mcq, name='submit_quizclub'),
     path('submit-news/<int:question_id>/', views.submit_news_mcq, name='submit_news'),
+     # =============================
+    # 🔥 API ROUTES (MOBILE / SWAGGER)
+    # =============================
+
+
+    # TEST
     path('api/test/', TestAPI.as_view()),
+
+    # PROGRESS
     path('api/progress/quizclub/', QuizClubProgressAPI.as_view()),
     path('api/progress/newsbytes/', NewsBytesProgressAPI.as_view()),
     path('api/progress/full/', FullProgressAPI.as_view()),
+
+    # THINKBELL
+    path('api/thinkbell/sections/', ThinkBellSectionAPI.as_view()),
+    path('api/thinkbell/questions/', ThinkBellQuestionAPI.as_view()),
+    path('api/thinkbell/submit/', SubmitThinkBellAIAPI.as_view()),
+
+    # AI EXAM (OLD GLOBAL QUESTIONS)
+    path('api/ai-exam/question/', AIExamQuestionAPI.as_view()),
     path('api/ai-exam/', AIExamAPI.as_view()),
+
+    # QUIZCLUB MCQ
+    path('api/quizclub/question/', QuizClubQuestionAPI.as_view()),
+    path('api/quizclub/submit/', SubmitQuizClubMCQAPI.as_view()),
+
+    # NEWSBYTES MCQ
+    path('api/newsbytes/question/', NewsBytesQuestionAPI.as_view()),
+    path('api/newsbytes/submit/', SubmitNewsBytesMCQAPI.as_view()),
+
+    # LEADERBOARD & CONTENT
     path('api/leaderboard/', LeaderboardAPI.as_view()),
     path('api/announcements/', AnnouncementAPI.as_view()),
     path('api/quiz-shows/', QuizShowAPI.as_view()),
     path('api/live-events/', LiveEventAPI.as_view()),
+
+    # PHONE CHECK
     path('api/check-phone/', CheckPhoneAPI.as_view()),
     path('api/save-phone/', SavePhoneAPI.as_view()),
-    
-   
+    # ✅ SECTION LIST APIs
+    path('api/quizclub/sections/', QuizClubSectionAPI.as_view(), name='quizclub-sections'),
+    path('api/newsbytes/sections/', NewsBytesSectionAPI.as_view(), name='newsbytes-sections'),
+    path('api/thinkbell/sections/', ThinkBellSectionAPI.as_view(), name='thinkbell-sections'),
+
+
+
+
+
 
 ]
 

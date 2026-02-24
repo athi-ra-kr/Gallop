@@ -1,6 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Announcement ,QuizShow, LiveEvent
 from .models import StudentAnswerRecord
+from django.conf import settings
+import google.generativeai as genai
+
+genai.configure(api_key=settings.GEMINI_API_KEY)
 
 from django.shortcuts import render
 from django.http import HttpResponse
@@ -230,35 +234,15 @@ def manage_quiz_club_questions(request, section_id):
 
 
 @user_passes_test(is_admin, login_url='admin_login')
+@user_passes_test(is_admin, login_url='admin_login')
 def add_quiz_club_question(request):
-
-    # 🔹 Handle SECTION CREATION
-    if request.method == "POST" and request.POST.get('section_name'):
-        section_name = request.POST.get('section_name')
-        AppSection.objects.create(
-            name=section_name,
-            section_type='QC',
-            is_premium=request.POST.get('is_premium') == 'True'
-        )
-        return redirect('quiz_club')
-
-    # 🔹 GET section_id safely (from POST first, then GET)
     section_id = request.POST.get('section_id') or request.GET.get('section_id')
-
-    if not section_id:
-        messages.error(request, "Section ID missing.")
-        return redirect('quiz_club')
-
     section = get_object_or_404(AppSection, id=section_id)
 
-    # 🔹 SAVE MODULE
     if request.method == "POST":
         title = request.POST.get('title')
-
-        if not title:
-            messages.error(request, "Module title required.")
-            return redirect(request.path + f"?section_id={section.id}")
-
+        
+        # Create the main Question object
         q = SlideQuestion.objects.create(
             section=section,
             title=title,
@@ -271,35 +255,33 @@ def add_quiz_club_question(request):
         )
 
         texts = request.POST.getlist('slide_text[]')
-        images = request.FILES.getlist('slide_image[]')
-
+        
+        # FIX: Loop through indices to match text with the specific file input
         for i in range(len(texts)):
+            # We look for slide_image_0, slide_image_1, etc.
+            image_key = f'slide_image_{i}'
+            slide_image = request.FILES.get(image_key) 
+
             QuestionSlide.objects.create(
                 question=q,
                 text_content=texts[i],
-                image=images[i] if i < len(images) else None,
+                image=slide_image,
                 order=i + 1
             )
 
-        messages.success(request, "Quiz Module created successfully!")
+        messages.success(request, "Module created successfully!")
         return redirect('manage_quiz_club_questions', section_id=section.id)
 
     return render(request, 'quiz_club_form.html', {'section': section})
 
-
 @user_passes_test(is_admin, login_url='admin_login')
 def edit_quiz_club_question(request, pk):
-    # 1. Fetch the existing question module and its slides
     question = get_object_or_404(SlideQuestion, pk=pk)
     section = question.section
-    slides = question.slides.all().order_by('order')
 
     if request.method == "POST":
-        # 2. Update the primary module data
         question.title = request.POST.get('title')
         question.expected_answer_keywords = request.POST.get('keywords')
-
-        # Update MCQ fields from the assessment box
         question.option_a = request.POST.get('opt_a')
         question.option_b = request.POST.get('opt_b')
         question.option_c = request.POST.get('opt_c')
@@ -307,33 +289,36 @@ def edit_quiz_club_question(request, pk):
         question.correct_option = request.POST.get('correct_option')
         question.save()
 
-        # 3. Handle Slide updates: Delete old slides and replace with new form data
+        # Handle Slides: Delete old ones and recreate
         texts = request.POST.getlist('slide_text[]')
-        images = request.FILES.getlist('slide_image[]')
-
+        
+        # Optional: Store old images in a dict if you want to keep them if no new one is uploaded
+        old_slides = list(question.slides.all().order_by('order'))
         question.slides.all().delete()
 
         for i in range(len(texts)):
-            new_slide = QuestionSlide(
+            image_key = f'slide_image_{i}'
+            new_image = request.FILES.get(image_key)
+            
+            # Logic: Use new image if uploaded, else try to keep the old one (if index exists)
+            existing_image = None
+            if not new_image and i < len(old_slides):
+                existing_image = old_slides[i].image
+
+            QuestionSlide.objects.create(
                 question=question,
                 text_content=texts[i],
+                image=new_image if new_image else existing_image,
                 order=i + 1
             )
-            if i < len(images):
-                new_slide.image = images[i]
-            new_slide.save()
 
-        messages.success(request, "Quiz Module updated successfully!")
+        messages.success(request, "Updated successfully!")
         return redirect('manage_quiz_club_questions', section_id=section.id)
 
-    # 4. Pass 'is_edit' flag and data to fill the form
     return render(request, 'quiz_club_form.html', {
-        'question': question,
-        'section': section,
-        'slides': slides,
-        'is_edit': True
+        'question': question, 'section': section, 
+        'slides': question.slides.all().order_by('order'), 'is_edit': True
     })
-
 @user_passes_test(is_admin, login_url='admin_login')
 def delete_quiz_club_question(request, pk):
     question = get_object_or_404(SlideQuestion, pk=pk)
@@ -653,7 +638,8 @@ from django.shortcuts import render, get_object_or_404
 from .models import Question, StudentAnswer
 
 # Configure Gemini API
-genai.configure(api_key="AIzaSyCm49WK4EErBCiJziylVBdMtJW7K8Gg0os")
+# genai.configure(api_key="AIzaSyCm49WK4EErBCiJziylVBdMtJW7K8Gg0os")
+print("GEMINI KEY:", settings.GEMINI_API_KEY)
 
 from django.http import HttpResponse
 from .models import StudentAnswerRecord, StudentProfile
@@ -1417,4 +1403,646 @@ class SavePhoneAPI(APIView):
 
         return Response({
             "message": "Phone number saved successfully"
+        })
+
+
+class QuizClubQuestionAPI(APIView):
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('section_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER)
+        ]
+    )
+    def get(self, request):
+
+        section_id = request.GET.get("section_id")
+
+        if not section_id:
+            return Response({"error": "section_id required"}, status=400)
+
+        section = get_object_or_404(AppSection, id=section_id, section_type='QC')
+
+        questions = SlideQuestion.objects.filter(section=section).order_by("id")
+
+        if not questions.exists():
+            return Response({"error": "No questions in this section"}, status=404)
+
+        data = []
+
+        for index, q in enumerate(questions, start=1):
+            data.append({
+                "question_id": q.id,
+                "question_number": index,
+
+                "section_id": section.id,        # ✅ ADDED
+                "section_name": section.name,    # ✅ ADDED
+
+                "question": q.title,
+                "options": {
+                    "A": q.option_a,
+                    "B": q.option_b,
+                    "C": q.option_c,
+                    "D": q.option_d,
+                }
+            })
+
+        return Response({
+            "total_questions": questions.count(),
+            "questions": data
+        })
+    
+class SubmitQuizClubMCQAPI(APIView):
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["email", "question_id", "selected_option"],
+            properties={
+                "email": openapi.Schema(type=openapi.TYPE_STRING),
+                "question_id": openapi.Schema(type=openapi.TYPE_INTEGER),
+                "selected_option": openapi.Schema(type=openapi.TYPE_STRING),
+            },
+        ),
+    )
+    def post(self, request):
+
+        email = request.data.get("email")
+        question_id = request.data.get("question_id")
+        selected_option = request.data.get("selected_option")
+
+        student = get_object_or_404(StudentProfile, email=email)
+        question = get_object_or_404(SlideQuestion, id=question_id)
+
+        already = StudentAnswerRecord.objects.filter(
+            student=student,
+            slide_question=question
+        ).exists()
+
+        if already:
+            return Response({"message": "Already answered"}, status=400)
+
+        correct = question.correct_option == selected_option
+        points = 1 if correct else 0
+
+        StudentAnswerRecord.objects.create(
+            student=student,
+            slide_question=question,
+            selected_option=selected_option,
+            is_correct=correct,
+            points_awarded=points
+        )
+
+        student.total_score += points
+        student.save()
+
+        # ✅ Section completion check
+        total = SlideQuestion.objects.filter(section=question.section).count()
+        attempted = StudentAnswerRecord.objects.filter(
+            student=student,
+            slide_question__section=question.section
+        ).count()
+
+        section_completed = total > 0 and attempted == total
+
+        return Response({
+            "question_id": question_id,
+            "correct": correct,
+            "correct_answer": question.correct_option if not correct else None,
+            "points_awarded": points,
+            "section_completed": section_completed,
+            "total_score": student.total_score
+        })
+
+class SubmitNewsBytesMCQAPI(APIView):
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["email", "question_id", "selected_option"],
+            properties={
+                "email": openapi.Schema(type=openapi.TYPE_STRING),
+                "question_id": openapi.Schema(type=openapi.TYPE_INTEGER),
+                "selected_option": openapi.Schema(type=openapi.TYPE_STRING),
+            },
+        ),
+    )
+    def post(self, request):
+
+        email = request.data.get("email")
+        question_id = request.data.get("question_id")
+        selected_option = request.data.get("selected_option")
+
+        student = get_object_or_404(StudentProfile, email=email)
+        question = get_object_or_404(MCQQuestion, id=question_id)
+
+        already = StudentAnswerRecord.objects.filter(
+            student=student,
+            news_question=question
+        ).exists()
+
+        if already:
+            return Response({"message": "Already answered"}, status=400)
+
+        correct = question.correct_option == selected_option
+        points = 1 if correct else 0
+
+        StudentAnswerRecord.objects.create(
+            student=student,
+            news_question=question,
+            selected_option=selected_option,
+            is_correct=correct,
+            points_awarded=points
+        )
+
+        student.total_score += points
+        student.save()
+
+        # ✅ Section completion check
+        total = MCQQuestion.objects.filter(section=question.section).count()
+        attempted = StudentAnswerRecord.objects.filter(
+            student=student,
+            news_question__section=question.section
+        ).count()
+
+        section_completed = total > 0 and attempted == total
+
+        return Response({
+            "question_id": question_id,
+            "correct": correct,
+            "correct_answer": question.correct_option if not correct else None,
+            "points_awarded": points,
+            "section_completed": section_completed,
+            "total_score": student.total_score
+        })
+
+
+
+class AIExamQuestionAPI(APIView):
+
+    def get(self, request):
+
+        questions = Question.objects.all().order_by("id")
+
+        if not questions.exists():
+            return Response({"error": "No questions available"}, status=404)
+
+        data = []
+
+        for index, q in enumerate(questions, start=1):
+            data.append({
+                "question_number": index,
+                "question": q.text
+            })
+
+        return Response(data)
+
+
+
+
+class AIExamAPI(APIView):
+
+    @swagger_auto_schema(
+        operation_description="Submit Descriptive Answer for AI Evaluation",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["email", "question_number", "student_answer"],
+            properties={
+                "email": openapi.Schema(type=openapi.TYPE_STRING, example="student@gmail.com"),
+                "question_number": openapi.Schema(type=openapi.TYPE_INTEGER, example=1),
+                "student_answer": openapi.Schema(type=openapi.TYPE_STRING, example="I would save the civilian because it is the right thing to do."),
+            },
+        ),
+    )
+    def post(self, request):
+        email = request.data.get("email")
+        question_number = request.data.get("question_number")
+        student_text = request.data.get("student_answer")
+
+        # 1. Validation
+        missing_fields = [f for f, v in [("email", email), ("question_number", question_number), ("student_answer", student_text)] if not v]
+        if missing_fields:
+            return Response({"error": f"Missing fields: {', '.join(missing_fields)}"}, status=400)
+
+        student = get_object_or_404(StudentProfile, email=email)
+        questions = Question.objects.all().order_by("id")
+
+        try:
+            q_num = int(question_number)
+            question = questions[q_num - 1]
+        except (ValueError, IndexError):
+            return Response({"error": "Invalid question_number"}, status=400)
+
+        # 2. Prevent Multiple Attempts
+        already = StudentAnswerRecord.objects.filter(
+            student=student,
+            thinkbell_question=question
+        ).exists()
+
+        if already:
+            return Response({"message": "Already answered"}, status=400)
+
+        # 3. AI Evaluation Prompt
+        prompt = f"""
+Analyze this student's answer based on the question.
+
+Question: {question.text}
+Student Answer: {student_text}
+
+Above is the question and answer by a student. Now give report in below format
+
+Gallup – Thinking & Decision-Making Report
+
+Purpose: This report helps parents understand how their child thinks, reasons, and makes decisions in challenging situations.
+
+Scenario Summary:
+Write a short summary of the situation.
+
+Student’s Decision
+Explain what the student decided.
+
+Detailed Evaluation
+
+Area Assessed – Observation
+Understanding of Situation –
+Decision Clarity –
+Reasoning Ability –
+Values Shown –
+Empathy & Responsibility –
+
+Final Thinking Score
+Give score like 7.5 / 10
+
+Strong Points
+Give 3 bullet points
+
+Thinking Style Identified
+One line
+
+Areas to Work On
+Give 2 bullet points
+
+Parent Note
+2–3 lines for parents
+"""
+
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(prompt)
+
+        if response and hasattr(response, "text"):
+            ai_result = re.sub(r"\*+", "", response.text).strip()
+        else:
+            ai_result = "AI could not generate feedback"
+
+        # 4. Extract Score
+        score_match = re.search(r'(\d+(\.\d+)?)\s*/\s*10', ai_result)
+
+        if score_match:
+            ai_score_10 = float(score_match.group(1))
+            score = round(ai_score_10 / 2)  # Convert to 0–5 scale
+        else:
+            score = 0
+
+        # 5. Save to Database
+        StudentAnswerRecord.objects.create(
+            student=student,
+            thinkbell_question=question,
+            descriptive_answer=student_text,
+            ai_score=score,
+            points_awarded=score
+        )
+
+        student.total_score += score
+        student.save()
+
+        # 6. Check Completion Status
+        total = questions.count()
+        attempted = StudentAnswerRecord.objects.filter(
+            student=student,
+            thinkbell_question__isnull=False
+        ).count()
+
+        completed = (total > 0 and attempted >= total)
+        task_msg = "All AI tasks completed successfully!" if completed else "AI Analysis saved."
+
+        return Response({
+            "question": question.text,
+            "student_answer": student_text,
+            "ai_feedback": ai_result,
+            "score_awarded": score,
+            "total_score": student.total_score,
+            "completed": completed,
+            "task_status": task_msg
+        })
+
+
+
+
+class SubmitThinkBellAIAPI(APIView):
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["email", "question_id", "student_answer"],
+            properties={
+                "email": openapi.Schema(type=openapi.TYPE_STRING),
+                "question_id": openapi.Schema(type=openapi.TYPE_INTEGER),
+                "student_answer": openapi.Schema(type=openapi.TYPE_STRING),
+            },
+        ),
+    )
+    def post(self, request):
+
+        email = request.data.get("email")
+        question_id = request.data.get("question_id")
+        student_text = request.data.get("student_answer")
+
+        if not email or not question_id or not student_text:
+            return Response({"error": "Missing fields"}, status=400)
+
+        student = get_object_or_404(StudentProfile, email=email)
+        question = get_object_or_404(SlideQuestion, id=question_id)
+
+        # 🚫 prevent multiple attempts
+        already = StudentAnswerRecord.objects.filter(
+            student=student,
+            thinkbell_question=question
+        ).exists()
+
+        if already:
+            return Response({"message": "Already answered"}, status=400)
+
+        # 🧠 FULL GALLUP PROMPT
+        prompt = f"""
+Analyze this student's answer based on the question.
+
+Question: {question.title}
+Student Answer: {student_text}
+
+Above is the question and answer by a student. Now give report in below format
+
+Gallup – Thinking & Decision-Making Report
+
+Purpose: This report helps parents understand how their child thinks, reasons, and makes decisions in challenging situations.
+
+Scenario Summary:
+Write a short summary of the situation.
+
+Student’s Decision
+Explain what the student decided.
+
+Detailed Evaluation
+
+Area Assessed – Observation
+Understanding of Situation –
+Decision Clarity –
+Reasoning Ability –
+Values Shown –
+Empathy & Responsibility –
+
+Final Thinking Score
+Give score like 7.5 / 10
+
+Strong Points
+Give 3 bullet points
+
+Thinking Style Identified
+One line
+
+Areas to Work On
+Give 2 bullet points
+
+Parent Note
+2–3 lines for parents
+"""
+
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(prompt)
+
+        if response and hasattr(response, "text"):
+            ai_result = re.sub(r"\*+", "", response.text).strip()
+        else:
+            ai_result = "AI could not generate feedback."
+
+        # 🎯 Extract score from AI text
+        score_match = re.search(r'(\d+(\.\d+)?)\s*/\s*10', ai_result)
+
+        if score_match:
+            ai_score_10 = float(score_match.group(1))  # e.g. 7.5
+            score = round(ai_score_10 / 2)  # convert to 0–5
+        else:
+            score = 0
+
+        # 💾 Save answer record
+        StudentAnswerRecord.objects.create(
+            student=student,
+            thinkbell_question=question,
+            descriptive_answer=student_text,
+            ai_score=score,
+            points_awarded=score
+        )
+
+        student.total_score += score
+        student.save()
+
+        # ✅ Section completion check
+        total = SlideQuestion.objects.filter(section=question.section).count()
+        attempted = StudentAnswerRecord.objects.filter(
+            student=student,
+            thinkbell_question__section=question.section
+        ).count()
+
+        section_completed = total > 0 and attempted == total
+
+        return Response({
+            "section_id": question.section.id,
+            "question_id": question_id,
+            "ai_feedback": ai_result,
+            "score_awarded": score,
+            "section_completed": section_completed,
+            "total_score": student.total_score
+        })
+    
+
+
+class ThinkBellSectionAPI(APIView):
+    def get(self, request):
+
+        sections = AppSection.objects.filter(section_type='TB')
+
+        data = []
+        for s in sections:
+            total_questions = SlideQuestion.objects.filter(section=s).count()
+
+            data.append({
+                "section_id": s.id,
+                "section_name": s.name,
+                "total_questions": total_questions,
+                "is_premium": s.is_premium
+            })
+
+        return Response(data)
+    
+
+
+class ThinkBellQuestionAPI(APIView):
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('section_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER)
+        ]
+    )
+    def get(self, request):
+
+        section_id = request.GET.get("section_id")
+
+        if not section_id:
+            return Response({"error": "section_id required"}, status=400)
+
+        section = get_object_or_404(AppSection, id=section_id, section_type='TB')
+
+        questions = SlideQuestion.objects.filter(section=section).order_by("id")
+
+        if not questions.exists():
+            return Response({"error": "No questions in this section"}, status=404)
+
+        data = []
+
+        for q in questions:
+            data.append({
+                "question_id": q.id,
+
+                "section_id": section.id,        # ✅ ADDED
+                "section_name": section.name,    # ✅ ADDED
+
+                "question": q.title
+            })
+
+        return Response({
+            "total_questions": questions.count(),
+            "questions": data
+        })
+
+
+
+class NewsBytesQuestionAPI(APIView):
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                'section_id',
+                openapi.IN_QUERY,
+                type=openapi.TYPE_INTEGER,
+                description="NewsBytes Section ID"
+            )
+        ]
+    )
+    def get(self, request):
+
+        section_id = request.GET.get("section_id")
+
+        if not section_id:
+            return Response({"error": "section_id required"}, status=400)
+
+        section = get_object_or_404(AppSection, id=section_id, section_type='NB')
+
+        questions = MCQQuestion.objects.filter(section=section).order_by("id")
+
+        if not questions.exists():
+            return Response({"error": "No questions in this section"}, status=404)
+
+        data = []
+
+        for q in questions:
+            data.append({
+                "question_id": q.id,
+
+                "section_id": section.id,        # ✅ ADDED
+                "section_name": section.name,    # ✅ ADDED
+
+                "question": q.content,
+                "options": {
+                    "A": q.option_a,
+                    "B": q.option_b,
+                    "C": q.option_c,
+                    "D": q.option_d,
+                }
+            })
+
+        return Response({
+            "total_questions": questions.count(),
+            "questions": data
+        })
+
+
+
+# =========================================================
+# ✅ SECTION LIST APIs (FOR FRONTEND)
+# =========================================================
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
+# 🔹 QUIZ CLUB SECTIONS LIST
+class QuizClubSectionAPI(APIView):
+
+    def get(self, request):
+
+        sections = AppSection.objects.filter(section_type='QC').order_by('id')
+
+        data = []
+
+        for s in sections:
+            data.append({
+                "section_id": s.id,
+                "section_name": s.name,
+                "is_premium": s.is_premium
+            })
+
+        return Response({
+            "total_sections": len(data),
+            "sections": data
+        })
+
+
+# 🔹 NEWSBYTES SECTIONS LIST
+class NewsBytesSectionAPI(APIView):
+
+    def get(self, request):
+
+        sections = AppSection.objects.filter(section_type='NB').order_by('id')
+
+        data = []
+
+        for s in sections:
+            data.append({
+                "section_id": s.id,
+                "section_name": s.name,
+                "is_premium": s.is_premium
+            })
+
+        return Response({
+            "total_sections": len(data),
+            "sections": data
+        })
+
+
+# 🔹 THINKBELL SECTIONS LIST
+class ThinkBellSectionAPI(APIView):
+
+    def get(self, request):
+
+        sections = AppSection.objects.filter(section_type='TB').order_by('id')
+
+        data = []
+
+        for s in sections:
+            data.append({
+                "section_id": s.id,
+                "section_name": s.name,
+                "is_premium": s.is_premium
+            })
+
+        return Response({
+            "total_sections": len(data),
+            "sections": data
         })
