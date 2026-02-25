@@ -136,3 +136,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Allow Google's popup to communicate back to your page
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 LOGIN_REDIRECT_URL = '/dashboard/'  # Or whatever your dashboard path is
+print("GEMINI FROM ENV:", GEMINI_API_KEY)

@@ -22,8 +22,11 @@ from .views import (
     ThinkBellSectionAPI,
     ThinkBellQuestionAPI,
     SubmitThinkBellAIAPI,
+    SubmitThinkBellSectionSingleAIAPI,
+   
 )
  
+
 
 
 urlpatterns = [
@@ -121,6 +124,8 @@ urlpatterns = [
     path('api/quizclub/sections/', QuizClubSectionAPI.as_view(), name='quizclub-sections'),
     path('api/newsbytes/sections/', NewsBytesSectionAPI.as_view(), name='newsbytes-sections'),
     path('api/thinkbell/sections/', ThinkBellSectionAPI.as_view(), name='thinkbell-sections'),
+    path('submit-thinkbell-section-single-ai/', SubmitThinkBellSectionSingleAIAPI.as_view()),
+   
 
 
 

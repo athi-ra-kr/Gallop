@@ -1,23 +1,25 @@
 from django.contrib import admin
 from django.utils import timezone
+from django.db.models import Sum
 
 from .models import (
     AppSection,
     MCQQuestion,
     SlideQuestion,
     QuestionSlide,
-    Question,
-    StudentAnswer,
+    
     StudentProfile,
-    StudentAnswerRecord,   # ⭐ NEW
+    StudentAnswerRecord,
 )
 
 # ==============================
 # 🔹 Slide Inline for Modules
 # ==============================
-class SlideInline(admin.TabularInline):
+class SlideInline(admin.StackedInline):   # ✅ CHANGED
     model = QuestionSlide
-    extra = 1
+    extra = 0
+    fields = ("order", "text_content", "image")  # ✅ SHOW TEACHING TEXT
+    ordering = ("order",)
 
 
 # ==============================
@@ -25,10 +27,14 @@ class SlideInline(admin.TabularInline):
 # ==============================
 @admin.register(SlideQuestion)
 class SlideQuestionAdmin(admin.ModelAdmin):
-    list_display = ("title", "section", "correct_option")
+    list_display = ("title", "section", "slide_count", "correct_option")
     list_filter = ("section",)
     search_fields = ("title",)
     inlines = [SlideInline]
+
+    def slide_count(self, obj):
+        return obj.slides.count()
+    slide_count.short_description = "Slides"
 
 
 # ==============================
@@ -54,32 +60,25 @@ class MCQQuestionAdmin(admin.ModelAdmin):
 # ==============================
 # 🔹 Firebase Students + TOTAL SCORE
 # ==============================
-from django.contrib import admin
-from django.utils import timezone
-from django.db.models import Sum
-from .models import StudentProfile, StudentAnswerRecord
-
-from django.contrib import admin
-from django.utils import timezone
-from django.db.models import Sum
-from .models import StudentProfile, StudentAnswerRecord
-
-
 @admin.register(StudentProfile)
 class StudentProfileAdmin(admin.ModelAdmin):
     list_display = (
         "email",
         "firebase_uid",
-        "phone_number",   # ✅ show phone
+        "phone_number",
         "provider",
         "total_score",
-        "created_at",
-        "last_login_time",
+        "account_created_date",
+        "last_login_date",
+        "thinkbell_score",
+        "quizclub_score",
+        "newsbytes_score",
     )
 
     search_fields = ("email", "firebase_uid", "phone_number")
     list_filter = ("provider",)
-    # ✅ THINKBELL → AI marks sum
+
+    # 🔹 THINKBELL SCORE
     def thinkbell_score(self, obj):
         total = StudentAnswerRecord.objects.filter(
             student=obj,
@@ -88,7 +87,7 @@ class StudentProfileAdmin(admin.ModelAdmin):
         return total or 0
     thinkbell_score.short_description = "ThinkBell"
 
-    # ✅ QUIZ CLUB → 1 per correct (stored in points_awarded)
+    # 🔹 QUIZ CLUB SCORE
     def quizclub_score(self, obj):
         total = StudentAnswerRecord.objects.filter(
             student=obj,
@@ -97,7 +96,7 @@ class StudentProfileAdmin(admin.ModelAdmin):
         return total or 0
     quizclub_score.short_description = "QuizClub"
 
-    # ✅ NEWSBYTES → 1 per correct
+    # 🔹 NEWSBYTES SCORE
     def newsbytes_score(self, obj):
         total = StudentAnswerRecord.objects.filter(
             student=obj,
@@ -106,7 +105,7 @@ class StudentProfileAdmin(admin.ModelAdmin):
         return total or 0
     newsbytes_score.short_description = "NewsBytes"
 
-    # ✅ DATE ONLY (NO TIME)
+    # 🔹 DATE ONLY (NO TIME)
     def account_created_date(self, obj):
         if obj.created_at:
             return timezone.localtime(obj.created_at).date()
@@ -118,33 +117,20 @@ class StudentProfileAdmin(admin.ModelAdmin):
             return timezone.localtime(obj.last_login_time).date()
         return "-"
     last_login_date.short_description = "Last Sign In"
-# ==============================
-# 🔹 Exam Questions (ThinkBell Descriptive)
-# ==============================
-@admin.register(Question)
-class QuestionAdmin(admin.ModelAdmin):
-    list_display = ("text", "created_at")
-    search_fields = ("text",)
+
+
+
 
 
 # ==============================
-# 🔹 Old AI Answers (keep if needed)
-# ==============================
-@admin.register(StudentAnswer)
-class StudentAnswerAdmin(admin.ModelAdmin):
-    list_display = ("question", "submitted_at")
-    search_fields = ("answer_text", "ai_feedback")
-    list_filter = ("submitted_at",)
-
-
-# ==============================
-# 🔹 NEW: All MCQ + AI Score Records
+# 🔹 All MCQ + AI Score Records
 # ==============================
 @admin.register(StudentAnswerRecord)
 class StudentAnswerRecordAdmin(admin.ModelAdmin):
     list_display = (
         "student",
         "slide_question",
+        "question_slide",   # ✅ SHOW SLIDE LEVEL AI RECORD
         "news_question",
         "thinkbell_question",
         "is_correct",

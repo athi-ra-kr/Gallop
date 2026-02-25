@@ -1,5 +1,16 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Announcement ,QuizShow, LiveEvent
+from django.conf import settings
+import google.generativeai as genai
+from django.db.models import Sum
+if settings.GEMINI_API_KEY:
+    genai.configure(api_key=settings.GEMINI_API_KEY)
+    print("✅ Gemini configured")
+else:
+    print("❌ Gemini key missing")
+
+
+
 from .models import StudentAnswerRecord
 from django.conf import settings
 import google.generativeai as genai
@@ -160,61 +171,108 @@ def add_thinkbell_question(request, section_id):
     return render(request, 'thinkbell_form.html', {'section': section})
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .models import SlideQuestion, QuestionSlide
+
 def edit_thinkbell_question(request, pk):
-    # 1. Fetch the existing module and its slides
+
     question = get_object_or_404(SlideQuestion, pk=pk)
     section = question.section
     slides = question.slides.all().order_by('order')
 
     if request.method == "POST":
-        # 2. Update the main module data
+
+        # 🔹 UPDATE MODULE MAIN DATA
         question.title = request.POST.get('title')
         question.expected_answer_keywords = request.POST.get('keywords')
 
-        # Update MCQ Assessment fields
         question.option_a = request.POST.get('opt_a')
         question.option_b = request.POST.get('opt_b')
         question.option_c = request.POST.get('opt_c')
         question.option_d = request.POST.get('opt_d')
         question.correct_option = request.POST.get('correct_option')
+
         question.save()
 
-        # 3. Update Learning Slides logic
-        # For a clean update, we handle the slide IDs provided in the form
+        # 🔹 SLIDE DATA FROM FORM
+        slide_ids = request.POST.getlist('slide_id[]')
         texts = request.POST.getlist('slide_text[]')
         images = request.FILES.getlist('slide_image[]')
 
-        # Clear existing slides to replace them with the new sequence from the form
-        question.slides.all().delete()
+        # 🔹 EXISTING SLIDES MAP
+        existing_slides = {str(s.id): s for s in question.slides.all()}
+        updated_slide_ids = []
+
+        image_index = 0  # to track file uploads correctly
 
         for i in range(len(texts)):
-            new_slide = QuestionSlide(
-                question=question,
-                text_content=texts[i],
-                order=i + 1
-            )
-            # Check if an image was uploaded for this specific index
-            if i < len(images):
-                new_slide.image = images[i]
-            new_slide.save()
+
+            slide_id = slide_ids[i]
+
+            # =========================
+            # 🔄 UPDATE EXISTING SLIDE
+            # =========================
+            if slide_id and slide_id in existing_slides:
+
+                slide = existing_slides[slide_id]
+                slide.text_content = texts[i]
+                slide.order = i + 1
+
+                # If a new image uploaded for this slide → replace
+                if image_index < len(images):
+                    slide.image = images[image_index]
+                    image_index += 1
+
+                slide.save()
+                updated_slide_ids.append(slide_id)
+
+            # =========================
+            # ➕ CREATE NEW SLIDE
+            # =========================
+            else:
+
+                new_slide = QuestionSlide.objects.create(
+                    question=question,
+                    text_content=texts[i],
+                    order=i + 1,
+                    image=images[image_index] if image_index < len(images) else None
+                )
+
+                if image_index < len(images):
+                    image_index += 1
+
+                updated_slide_ids.append(str(new_slide.id))
+
+        # =========================
+        # ❌ DELETE REMOVED SLIDES
+        # =========================
+        for slide_id, slide in existing_slides.items():
+            if slide_id not in updated_slide_ids:
+                slide.delete()
 
         messages.success(request, "ThinkBell module updated successfully!")
+
         return redirect('manage_thinkbell_questions', section_id=section.id)
 
-    # 4. Pass 'is_edit' and existing data to the template
     return render(request, 'thinkbell_form.html', {
         'question': question,
         'slides': slides,
         'section': section,
         'is_edit': True
     })
-@user_passes_test(is_admin, login_url='admin_login')
+
+
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from .models import SlideQuestion
+
 def delete_thinkbell_question(request, pk):
     question = get_object_or_404(SlideQuestion, pk=pk)
-    sid = question.section.id
+    section_id = question.section.id
     question.delete()
-    messages.info(request, "Module removed successfully.")
-    return redirect('manage_thinkbell_questions', section_id=sid)
+    messages.success(request, "ThinkBell module deleted successfully!")
+    return redirect('manage_thinkbell_questions', section_id=section_id)
 
 
 # =========================================================
@@ -1175,6 +1233,7 @@ class FullProgressAPI(APIView):
         return Response({
             "quizclub": QuizClubProgressAPI().get(request).data,
             "newsbytes": NewsBytesProgressAPI().get(request).data,
+            "thinkbell": get_thinkbell_progress(student),
             "total_score": student.total_score
         })
 
@@ -1470,7 +1529,7 @@ class SubmitQuizClubMCQAPI(APIView):
         question_id = request.data.get("question_id")
         selected_option = request.data.get("selected_option")
 
-        student = get_object_or_404(StudentProfile, email=email)
+        student, created = StudentProfile.objects.get_or_create(email=email)
         question = get_object_or_404(SlideQuestion, id=question_id)
 
         already = StudentAnswerRecord.objects.filter(
@@ -1735,9 +1794,18 @@ Parent Note
         })
 
 
+from rest_framework.permissions import AllowAny
+from rest_framework.authentication import SessionAuthentication
+from rest_framework.views import APIView
 
+# 🔹 Disable CSRF for API
+class CsrfExemptSessionAuthentication(SessionAuthentication):
+    def enforce_csrf(self, request):
+        return
 
 class SubmitThinkBellAIAPI(APIView):
+    authentication_classes = [CsrfExemptSessionAuthentication]
+    permission_classes = [AllowAny]
 
     @swagger_auto_schema(
         request_body=openapi.Schema(
@@ -1756,16 +1824,20 @@ class SubmitThinkBellAIAPI(APIView):
         question_id = request.data.get("question_id")
         student_text = request.data.get("student_answer")
 
+        # 🔴 VALIDATION
         if not email or not question_id or not student_text:
             return Response({"error": "Missing fields"}, status=400)
 
-        student = get_object_or_404(StudentProfile, email=email)
+        # ✅ AUTO CREATE STUDENT
+        student, created = StudentProfile.objects.get_or_create(email=email)
+
+        # ✅ GET QUESTION
         question = get_object_or_404(SlideQuestion, id=question_id)
 
-        # 🚫 prevent multiple attempts
+        # 🚫 PREVENT MULTIPLE ATTEMPTS
         already = StudentAnswerRecord.objects.filter(
             student=student,
-            thinkbell_question=question
+            slide_question=question
         ).exists()
 
         if already:
@@ -1782,12 +1854,13 @@ Above is the question and answer by a student. Now give report in below format
 
 Gallup – Thinking & Decision-Making Report
 
-Purpose: This report helps parents understand how their child thinks, reasons, and makes decisions in challenging situations.
+Purpose:
+This report helps parents understand how their child thinks, reasons, and makes decisions in challenging situations.
 
 Scenario Summary:
 Write a short summary of the situation.
 
-Student’s Decision
+Student’s Decision:
 Explain what the student decided.
 
 Detailed Evaluation
@@ -1812,9 +1885,10 @@ Areas to Work On
 Give 2 bullet points
 
 Parent Note
-2–3 lines for parents
+Write 2–3 lines for parents in simple language.
 """
 
+        # 🤖 CALL GEMINI
         model = genai.GenerativeModel("gemini-2.5-flash")
         response = model.generate_content(prompt)
 
@@ -1823,41 +1897,47 @@ Parent Note
         else:
             ai_result = "AI could not generate feedback."
 
-        # 🎯 Extract score from AI text
+        # 🎯 EXTRACT SCORE FROM TEXT
         score_match = re.search(r'(\d+(\.\d+)?)\s*/\s*10', ai_result)
 
         if score_match:
-            ai_score_10 = float(score_match.group(1))  # e.g. 7.5
-            score = round(ai_score_10 / 2)  # convert to 0–5
+            ai_score_10 = float(score_match.group(1))
+            score = round(ai_score_10 / 2)  # convert to 0–5 scale
         else:
             score = 0
 
-        # 💾 Save answer record
+        # 💾 SAVE RECORD (USE slide_question)
         StudentAnswerRecord.objects.create(
             student=student,
-            thinkbell_question=question,
+            slide_question=question,
             descriptive_answer=student_text,
             ai_score=score,
             points_awarded=score
         )
 
+        # ➕ UPDATE TOTAL SCORE
         student.total_score += score
         student.save()
 
-        # ✅ Section completion check
+        # ✅ SECTION PROGRESS
         total = SlideQuestion.objects.filter(section=question.section).count()
+
         attempted = StudentAnswerRecord.objects.filter(
             student=student,
-            thinkbell_question__section=question.section
+            slide_question__section=question.section
         ).count()
 
         section_completed = total > 0 and attempted == total
 
+        # 📊 RESPONSE
         return Response({
             "section_id": question.section.id,
-            "question_id": question_id,
+            "section_name": question.section.name,
+            "question_id": question.id,
             "ai_feedback": ai_result,
             "score_awarded": score,
+            "attempted_questions": attempted,
+            "total_questions": total,
             "section_completed": section_completed,
             "total_score": student.total_score
         })
@@ -1907,22 +1987,33 @@ class ThinkBellQuestionAPI(APIView):
 
         data = []
 
-        for q in questions:
+        for q_index, q in enumerate(questions, start=1):
+
+            slides_data = []
+
+            slides = q.slides.all().order_by("order")
+
+            for slide in slides:
+                slides_data.append({
+                    "slide_id": slide.id,
+                    "slide_text": slide.text_content,
+                    "slide_image": slide.image.url if slide.image else None,
+                    "slide_order": slide.order
+                })
+
             data.append({
                 "question_id": q.id,
-
-                "section_id": section.id,        # ✅ ADDED
-                "section_name": section.name,    # ✅ ADDED
-
-                "question": q.title
+                "question_number": q_index,
+                "section_id": section.id,
+                "section_name": section.name,
+                "question_title": q.title,
+                "slides": slides_data
             })
 
         return Response({
             "total_questions": questions.count(),
             "questions": data
         })
-
-
 
 class NewsBytesQuestionAPI(APIView):
 
@@ -2045,4 +2136,139 @@ class ThinkBellSectionAPI(APIView):
         return Response({
             "total_sections": len(data),
             "sections": data
+        })
+    
+
+
+class SubmitThinkBellSectionSingleAIAPI(APIView):
+    authentication_classes = [CsrfExemptSessionAuthentication]
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(
+        operation_description="Submit ONE descriptive answer for entire ThinkBell section using question_id",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["email", "question_id", "student_answer"],
+            properties={
+                "email": openapi.Schema(type=openapi.TYPE_STRING),
+                "question_id": openapi.Schema(type=openapi.TYPE_INTEGER),
+                "student_answer": openapi.Schema(type=openapi.TYPE_STRING),
+            },
+        ),
+    )
+    def post(self, request):
+
+        email = request.data.get("email")
+        question_id = request.data.get("question_id")
+        student_text = request.data.get("student_answer")
+
+        # ✅ VALIDATION
+        if not email or not question_id or not student_text:
+            return Response({"error": "Missing fields"}, status=400)
+
+        # ✅ GET OR CREATE STUDENT
+        student, _ = StudentProfile.objects.get_or_create(email=email)
+
+        # ✅ GET QUESTION → AUTO GET SECTION
+        question = get_object_or_404(SlideQuestion, id=question_id)
+        section = question.section
+
+        # 🚫 PREVENT MULTIPLE ATTEMPTS PER SECTION
+        already = StudentAnswerRecord.objects.filter(
+            student=student,
+            slide_question__section=section,
+            descriptive_answer__isnull=False
+        ).exists()
+
+        if already:
+            return Response({"message": "Section already answered"}, status=400)
+
+        # 🧠 AI PROMPT (SECTION LEVEL)
+        prompt = f"""
+Analyze this student's answer for the following ThinkBell module.
+
+Section: {section.name}
+
+Student Answer:
+{student_text}
+
+Give report strictly in this format:
+
+Gallup – Thinking & Decision-Making Report
+
+Purpose:
+This report helps parents understand how their child thinks.
+
+Scenario Summary:
+Write a short summary.
+
+Student’s Decision:
+Explain what the student decided.
+
+Detailed Evaluation
+
+Understanding of Situation –
+Decision Clarity –
+Reasoning Ability –
+Values Shown –
+Empathy & Responsibility –
+
+Final Thinking Score
+Give score like 7.5 / 10
+
+Strong Points
+Give 3 bullet points
+
+Thinking Style Identified
+One line
+
+Areas to Work On
+Give 2 bullet points
+
+Parent Note
+2–3 simple lines.
+"""
+
+        try:
+            model = genai.GenerativeModel("gemini-2.5-flash")
+            response = model.generate_content(prompt)
+
+            if response and hasattr(response, "text"):
+                ai_result = re.sub(r"\*+", "", response.text).strip()
+            else:
+                raise Exception("AI empty")
+
+        except Exception:
+            ai_result = "AI could not generate feedback."
+
+        # 🎯 EXTRACT SCORE
+        score_match = re.search(r'(\d+(\.\d+)?)\s*/\s*10', ai_result)
+
+        if score_match:
+            ai_score_10 = float(score_match.group(1))
+            score = round(ai_score_10 / 2)
+        else:
+            score = 0
+
+        # 💾 SAVE ONE RECORD FOR SECTION
+        StudentAnswerRecord.objects.create(
+            student=student,
+            slide_question=question,
+            descriptive_answer=student_text,
+            ai_score=score,
+            points_awarded=score
+        )
+
+        # ➕ UPDATE TOTAL SCORE
+        student.total_score += score
+        student.save()
+
+        return Response({
+            "section_id": section.id,
+            "section_name": section.name,
+            "question_id": question.id,
+            "ai_feedback": ai_result,
+            "score_awarded": score,
+            "section_completed": True,
+            "total_score": student.total_score
         })
