@@ -205,7 +205,7 @@
             <p>Create and organize quiz sections for your students.</p>
         </div>
 
-        <form action="{% url 'add_quiz_club_question' %}" method="POST" class="create-form">
+        <form action="{% url 'add_quiz_club_section' %}" method="POST" class="create-form">
             {% csrf_token %}
             <input type="text" name="section_name" placeholder="New Quiz Section (e.g. Science Bowl 2026)" required>
             <label style="font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-grey);">

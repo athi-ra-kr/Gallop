@@ -116,7 +116,7 @@
 
     <div class="header-flex">
         <div>
-            <h1>Firebase Authentication</h1>
+            <h1> Authentication</h1>
             <p style="color: var(--text-grey); margin-top: 5px;">Student section-wise scores</p>
         </div>
 
@@ -129,57 +129,47 @@
     <div class="card">
         <table>
             <thead>
-                <tr>
-                    <th>Email</th>
-                    <th>Phone</th> <!-- ✅ NEW -->
-                    <th>Provider</th>
-                    <th>ThinkBell</th>
-                    <th>QuizClub</th>
-                    <th>NewsBytes</th>
-                    <th>Total</th>
-                    <th>Created</th>
-                    <th>Signed In</th>
-                    <th>UID</th>
-                </tr>
-            </thead>
+    <tr>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>Provider</th>
+        <th>Created</th>
+        <th>Signed In</th>
+        <th>UID</th>
+    </tr>
+</thead>
 
             <tbody>
-                {% for student in students %}
-                <tr>
-                    <td style="color: var(--primary);">{{ student.email }}</td>
+    {% for student in students %}
+    <tr>
+        <td style="color: var(--primary);">{{ student.email }}</td>
 
-                    <!-- ✅ PHONE -->
-                    <td>{{ student.phone_number|default:"-" }}</td>
+        <td>{{ student.phone_number|default:"-" }}</td>
 
-                    <td>
-                        <div class="provider-badge">
-                            {% if student.provider == 'Google' %}
-                                <i class="fab fa-google" style="color:#4285F4;"></i> Google
-                            {% else %}
-                                <i class="fas fa-envelope-open-text"></i> Email
-                            {% endif %}
-                        </div>
-                    </td>
+        <td>
+            <div class="provider-badge">
+                {% if student.provider == 'Google' %}
+                    <i class="fab fa-google" style="color:#4285F4;"></i> Google
+                {% else %}
+                    <i class="fas fa-envelope-open-text"></i> Email
+                {% endif %}
+            </div>
+        </td>
 
-                    <td><span class="score-badge">{{ student.thinkbell_score }}</span></td>
-                    <td><span class="score-badge">{{ student.quizclub_score }}</span></td>
-                    <td><span class="score-badge">{{ student.newsbytes_score }}</span></td>
-                    <td><span class="total-badge">{{ student.total_score }}</span></td>
+        <td style="color: var(--text-grey);">{{ student.created }}</td>
+        <td>{{ student.signed_in }}</td>
+        <td><span class="uid-pill">{{ student.uid }}</span></td>
+    </tr>
 
-                    <td style="color: var(--text-grey);">{{ student.created }}</td>
-                    <td>{{ student.signed_in }}</td>
-                    <td><span class="uid-pill">{{ student.uid }}</span></td>
-                </tr>
-
-                {% empty %}
-                <tr>
-                    <td colspan="10" style="text-align:center; padding:50px; color:var(--text-grey);">
-                        <i class="fas fa-user-slash" style="font-size: 30px; display: block; margin-bottom: 10px;"></i>
-                        No users found.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
+    {% empty %}
+    <tr>
+        <td colspan="6" style="text-align:center; padding:50px; color:var(--text-grey);">
+            <i class="fas fa-user-slash" style="font-size: 30px; display: block; margin-bottom: 10px;"></i>
+            No users found.
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
         </table>
     </div>
 

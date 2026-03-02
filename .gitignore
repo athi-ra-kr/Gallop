@@ -1,6 +1,10 @@
-*.db
-*.sqlite3
-/data/
-node_modules/
+_pycache_/
+*.py[cod]
+*$py.class
 .env
-firebase-key.json
+db.sqlite3
+media/
+staticfiles/
+venv/
+*.log
+gallop_app/firebase-key.json

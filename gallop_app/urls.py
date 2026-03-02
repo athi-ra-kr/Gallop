@@ -3,26 +3,24 @@ from . import views
 from .views import (
     NewsBytesSectionAPI,
     QuizClubSectionAPI,
-    TestAPI,
-    QuizClubProgressAPI,
-    NewsBytesProgressAPI,
-    FullProgressAPI,
-    AIExamAPI,
-    LeaderboardAPI,
+    
+    
+    
+    
     AnnouncementAPI,
     QuizShowAPI,
-    LiveEventAPI,
+    
     CheckPhoneAPI,
     SavePhoneAPI,
     QuizClubQuestionAPI,
     SubmitQuizClubMCQAPI,
     NewsBytesQuestionAPI,
     SubmitNewsBytesMCQAPI,
-    AIExamQuestionAPI,
+   
     ThinkBellSectionAPI,
     ThinkBellQuestionAPI,
-    SubmitThinkBellAIAPI,
-    SubmitThinkBellSectionSingleAIAPI,
+    
+    
    
 )
  
@@ -51,6 +49,7 @@ urlpatterns = [
     path('quiz-club/', views.quiz_club_view, name='quiz_club'),
     # Fixed: Logic for adding sections and modules
     path('quiz-club/add/', views.add_quiz_club_question, name='add_quiz_club_question'),
+    path('quiz-club/add-section/', views.add_quiz_club_section, name='add_quiz_club_section'),
     path('quiz-club/manage/<int:section_id>/', views.manage_quiz_club_questions, name='manage_quiz_club_questions'),
     path('quiz-club/edit/<int:pk>/', views.edit_quiz_club_question, name='edit_quiz_club_question'),
     path('quiz-club/delete-question/<int:pk>/', views.delete_quiz_club_question, name='delete_quiz_club_question'),
@@ -83,25 +82,14 @@ urlpatterns = [
     path('submit-news/<int:question_id>/', views.submit_news_mcq, name='submit_news'),
      # =============================
     # 🔥 API ROUTES (MOBILE / SWAGGER)
-    # =============================
-
-
-    # TEST
-    path('api/test/', TestAPI.as_view()),
-
-    # PROGRESS
-    path('api/progress/quizclub/', QuizClubProgressAPI.as_view()),
-    path('api/progress/newsbytes/', NewsBytesProgressAPI.as_view()),
-    path('api/progress/full/', FullProgressAPI.as_view()),
-
+    # ============================
     # THINKBELL
     path('api/thinkbell/sections/', ThinkBellSectionAPI.as_view()),
     path('api/thinkbell/questions/', ThinkBellQuestionAPI.as_view()),
-    path('api/thinkbell/submit/', SubmitThinkBellAIAPI.as_view()),
+    
 
     # AI EXAM (OLD GLOBAL QUESTIONS)
-    path('api/ai-exam/question/', AIExamQuestionAPI.as_view()),
-    path('api/ai-exam/', AIExamAPI.as_view()),
+    
 
     # QUIZCLUB MCQ
     path('api/quizclub/question/', QuizClubQuestionAPI.as_view()),
@@ -112,10 +100,10 @@ urlpatterns = [
     path('api/newsbytes/submit/', SubmitNewsBytesMCQAPI.as_view()),
 
     # LEADERBOARD & CONTENT
-    path('api/leaderboard/', LeaderboardAPI.as_view()),
+    
     path('api/announcements/', AnnouncementAPI.as_view()),
     path('api/quiz-shows/', QuizShowAPI.as_view()),
-    path('api/live-events/', LiveEventAPI.as_view()),
+   
 
     # PHONE CHECK
     path('api/check-phone/', CheckPhoneAPI.as_view()),
@@ -124,8 +112,7 @@ urlpatterns = [
     path('api/quizclub/sections/', QuizClubSectionAPI.as_view(), name='quizclub-sections'),
     path('api/newsbytes/sections/', NewsBytesSectionAPI.as_view(), name='newsbytes-sections'),
     path('api/thinkbell/sections/', ThinkBellSectionAPI.as_view(), name='thinkbell-sections'),
-    path('submit-thinkbell-section-single-ai/', SubmitThinkBellSectionSingleAIAPI.as_view()),
-   
+
 
 
 
