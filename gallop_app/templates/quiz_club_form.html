@@ -138,7 +138,7 @@ style="margin-top:20px;border:none;background:#E0E5F2;padding:12px;border-radius
 + Add Slide
 </button>
 
-<div class="mcq-box">
+<!-- <div class="mcq-box">
 <h3 style="margin-top:0;color:var(--primary);">Final Assessment (MCQ)</h3>
 
 <div class="grid-options">
@@ -155,10 +155,10 @@ style="margin-top:20px;border:none;background:#E0E5F2;padding:12px;border-radius
 <option value="C" {% if question.correct_option == "C" %}selected{% endif %}>Option C</option>
 <option value="D" {% if question.correct_option == "D" %}selected{% endif %}>Option D</option>
 </select>
-</div>
+</div> -->
 
-<label>Expected Answer Keywords</label>
-<input type="text" name="keywords" value="{{ question.expected_answer_keywords }}">
+<!-- <label>Expected Answer Keywords</label>
+<input type="text" name="keywords" value="{{ question.expected_answer_keywords }}"> -->
 
 <button type="submit" class="btn-submit">
 {% if is_edit %}Save Changes{% else %}Create Module{% endif %}

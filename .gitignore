@@ -1,10 +1,17 @@
-_pycache_/
-*.py[cod]
-*$py.class
-.env
+# Django
 db.sqlite3
 media/
 staticfiles/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual Environment
 venv/
-*.log
+
+# Environment variables
+.env
+
+# Firebase key
 gallop_app/firebase-key.json

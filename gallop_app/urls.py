@@ -1,7 +1,10 @@
 from django.urls import path
 from . import views
 from .views import (
+    
     NewsBytesSectionAPI,
+  
+    QuizClubModuleAPI,
     QuizClubSectionAPI,
     
     
@@ -12,8 +15,7 @@ from .views import (
     
     CheckPhoneAPI,
     SavePhoneAPI,
-    QuizClubQuestionAPI,
-    SubmitQuizClubMCQAPI,
+    
     NewsBytesQuestionAPI,
     SubmitNewsBytesMCQAPI,
    
@@ -77,14 +79,14 @@ urlpatterns = [
     # Unified delete path
     path('delete/<str:model_type>/<int:pk>/', views.delete_item, name='delete_item'),
     path('section/delete/<int:pk>/', views.delete_section_view, name='delete_section'),
-    path('exam/<int:question_id>/', views.student_exam_view, name='student-exam'),
-    path('submit-quizclub/<int:question_id>/', views.submit_quizclub_mcq, name='submit_quizclub'),
+    # path('exam/<int:question_id>/', views.student_exam_view, name='student-exam'),
+    
     path('submit-news/<int:question_id>/', views.submit_news_mcq, name='submit_news'),
      # =============================
     # 🔥 API ROUTES (MOBILE / SWAGGER)
     # ============================
     # THINKBELL
-    path('api/thinkbell/sections/', ThinkBellSectionAPI.as_view()),
+    
     path('api/thinkbell/questions/', ThinkBellQuestionAPI.as_view()),
     
 
@@ -92,8 +94,8 @@ urlpatterns = [
     
 
     # QUIZCLUB MCQ
-    path('api/quizclub/question/', QuizClubQuestionAPI.as_view()),
-    path('api/quizclub/submit/', SubmitQuizClubMCQAPI.as_view()),
+    # path('api/quizclub/question/', QuizClubQuestionAPI.as_view()),
+    # path('api/quizclub/submit/', SubmitQuizClubMCQAPI.as_view()),
 
     # NEWSBYTES MCQ
     path('api/newsbytes/question/', NewsBytesQuestionAPI.as_view()),
@@ -112,6 +114,10 @@ urlpatterns = [
     path('api/quizclub/sections/', QuizClubSectionAPI.as_view(), name='quizclub-sections'),
     path('api/newsbytes/sections/', NewsBytesSectionAPI.as_view(), name='newsbytes-sections'),
     path('api/thinkbell/sections/', ThinkBellSectionAPI.as_view(), name='thinkbell-sections'),
+    # path('api/quiz-module/', QuizClubModuleAPI.as_view()),
+    # path('api/complete-module/', CompleteQuizModuleAPI.as_view()),
+    # path('api/next-module/', NextQuizModuleAPI.as_view()),
+    path('api/quizclub/module/', QuizClubModuleAPI.as_view(), name='quizclub-module'),
 
 
 

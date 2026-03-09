@@ -324,13 +324,8 @@ def add_quiz_club_question(request):
         q = SlideQuestion.objects.create(
             section=section,
             title=title,
-            expected_answer_keywords=request.POST.get('keywords', ''),
-            option_a=request.POST.get('opt_a'),
-            option_b=request.POST.get('opt_b'),
-            option_c=request.POST.get('opt_c'),
-            option_d=request.POST.get('opt_d'),
-            correct_option=request.POST.get('correct_option')
-        )
+            expected_answer_keywords=request.POST.get('keywords')
+            )
 
         # 🔹 Slides data
         texts = request.POST.getlist('slide_text[]')
@@ -365,13 +360,9 @@ def edit_quiz_club_question(request, pk):
     if request.method == "POST":
         question.title = request.POST.get('title')
         question.expected_answer_keywords = request.POST.get('keywords')
-        question.option_a = request.POST.get('opt_a')
-        question.option_b = request.POST.get('opt_b')
-        question.option_c = request.POST.get('opt_c')
-        question.option_d = request.POST.get('opt_d')
-        question.correct_option = request.POST.get('correct_option')
+        question.title = request.POST.get('title')
+        question.expected_answer_keywords = request.POST.get('keywords')
         question.save()
-
         # Handle Slides: Delete old ones and recreate
         texts = request.POST.getlist('slide_text[]')
         
@@ -703,139 +694,139 @@ def delete_item(request, model_type, pk):
     item.delete()
     return redirect(request.META.get('HTTP_REFERER'))
 
-import google.generativeai as genai
-import re
-from django.shortcuts import render, get_object_or_404
-from .models import Question, StudentAnswer
+# import google.generativeai as genai
+# import re
+# from django.shortcuts import render, get_object_or_404
+# from .models import Question, StudentAnswer
 
-# Configure Gemini API
+# # Configure Gemini API
 
-print("GEMINI KEY:", settings.GEMINI_API_KEY)
+# print("GEMINI KEY:", settings.GEMINI_API_KEY)
 
-from django.http import HttpResponse
+# from django.http import HttpResponse
 
 
-def student_exam_view(request, question_id):
-    question = get_object_or_404(Question, id=question_id)
-    result = None
+# def student_exam_view(request, question_id):
+#     question = get_object_or_404(Question, id=question_id)
+#     result = None
 
-    if request.method == "POST":
-        student_text = request.POST.get('student_answer')
+#     if request.method == "POST":
+#         student_text = request.POST.get('student_answer')
 
-        # 🔐 get student (session or fallback for now)
-        email = request.session.get("email")
+#         # 🔐 get student (session or fallback for now)
+#         email = request.session.get("email")
 
-        if email:
-            try:
-                student = StudentProfile.objects.get(email=email)
-            except StudentProfile.DoesNotExist:
-                student = StudentProfile.objects.first()
-        else:
-            student = StudentProfile.objects.first()
+#         if email:
+#             try:
+#                 student = StudentProfile.objects.get(email=email)
+#             except StudentProfile.DoesNotExist:
+#                 student = StudentProfile.objects.first()
+#         else:
+#             student = StudentProfile.objects.first()
 
-        # 🚫 prevent multiple attempts
-        already = StudentAnswerRecord.objects.filter(
-            student=student,
-            thinkbell_question=question
-        ).exists()
+#         # 🚫 prevent multiple attempts
+#         already = StudentAnswerRecord.objects.filter(
+#             student=student,
+#             thinkbell_question=question
+#         ).exists()
 
-        if already:
-            return HttpResponse("You already answered this question")
+#         if already:
+#             return HttpResponse("You already answered this question")
 
-        # 🤖 AI PROMPT (YOUR NO2 FIXED FORMAT)
-        prompt = f"""
-Analyze this student's answer based on the question.
+#         # 🤖 AI PROMPT (YOUR NO2 FIXED FORMAT)
+#         prompt = f"""
+# Analyze this student's answer based on the question.
 
-Question: {question.text}
-Student Answer: {student_text}
+# Question: {question.text}
+# Student Answer: {student_text}
 
-Above is the question and answer by a student. Now give report in below format
+# Above is the question and answer by a student. Now give report in below format
 
-Gallup – Thinking & Decision-Making Report
+# Gallup – Thinking & Decision-Making Report
 
-Purpose: This report helps parents understand how their child thinks, reasons, and makes decisions in challenging situations.
+# Purpose: This report helps parents understand how their child thinks, reasons, and makes decisions in challenging situations.
 
-Scenario Summary:
-The student was given a situation where a police officer must decide whether to continue chasing a dangerous criminal or stop to help an injured civilian.
+# Scenario Summary:
+# The student was given a situation where a police officer must decide whether to continue chasing a dangerous criminal or stop to help an injured civilian.
 
-Student’s Decision
-The student chose to continue chasing the criminal, believing that stopping the criminal would prevent greater harm to society in the future.
+# Student’s Decision
+# The student chose to continue chasing the criminal, believing that stopping the criminal would prevent greater harm to society in the future.
 
-Detailed Evaluation
+# Detailed Evaluation
 
-Area Assessed – Observation
-Understanding of Situation – Clear understanding of the problem and the choices involved.
-Decision Clarity – Decision was firm and confident.
-Reasoning Ability – Good logical thinking with focus on future consequences.
-Values Shown – Concern for public safety and society at large.
-Empathy & Responsibility – Needs improvement in showing care for the injured individual.
+# Area Assessed – Observation
+# Understanding of Situation – Clear understanding of the problem and the choices involved.
+# Decision Clarity – Decision was firm and confident.
+# Reasoning Ability – Good logical thinking with focus on future consequences.
+# Values Shown – Concern for public safety and society at large.
+# Empathy & Responsibility – Needs improvement in showing care for the injured individual.
 
-Final Thinking Score
-7.5 / 10 – Good thinking maturity for the age group.
+# Final Thinking Score
+# 7.5 / 10 – Good thinking maturity for the age group.
 
-Strong Points
+# Strong Points
 
-Thinks about long-term impact
+# Thinks about long-term impact
 
-Prioritises safety of many people
+# Prioritises safety of many people
 
-Shows confidence in difficult decisions
+# Shows confidence in difficult decisions
 
-Thinking Style Identified
-Future-focused and outcome-oriented thinker.
+# Thinking Style Identified
+# Future-focused and outcome-oriented thinker.
 
-Areas to Work On
+# Areas to Work On
 
-Showing empathy alongside strong decisions
+# Showing empathy alongside strong decisions
 
-Taking responsibility even when delegating tasks
+# Taking responsibility even when delegating tasks
 
-Parent Note
-Your child is developing strong logical and decision-making skills. Encouraging them to balance firm choices with compassion will help them grow into a thoughtful and responsible individual.
-"""
+# Parent Note
+# Your child is developing strong logical and decision-making skills. Encouraging them to balance firm choices with compassion will help them grow into a thoughtful and responsible individual.
+# """
 
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        response = model.generate_content(prompt)
+#         model = genai.GenerativeModel('gemini-2.5-flash')
+#         response = model.generate_content(prompt)
 
-        if response and hasattr(response, "text"):
-            cleaned_text = re.sub(r'\*+', '', response.text)
-            result = cleaned_text.strip()
-        else:
-            result = "AI could not generate feedback at this time."
+#         if response and hasattr(response, "text"):
+#             cleaned_text = re.sub(r'\*+', '', response.text)
+#             result = cleaned_text.strip()
+#         else:
+#             result = "AI could not generate feedback at this time."
 
-        # 🧾 Save AI report (your existing table)
-        StudentAnswer.objects.create(
-            question=question,
-            answer_text=student_text,
-            ai_feedback=result
-        )
+#         # 🧾 Save AI report (your existing table)
+#         StudentAnswer.objects.create(
+#             question=question,
+#             answer_text=student_text,
+#             ai_feedback=result
+#         )
 
-        # 🧠 EXTRACT SCORE FROM FIXED TEXT (7.5 / 10)
-        score_match = re.search(r'(\d+(\.\d+)?)\s*/\s*10', result)
+#         # 🧠 EXTRACT SCORE FROM FIXED TEXT (7.5 / 10)
+#         score_match = re.search(r'(\d+(\.\d+)?)\s*/\s*10', result)
 
-        if score_match:
-            ai_score_10 = float(score_match.group(1))  # e.g. 7.5
-            score = round(ai_score_10 / 2)  # convert to 0–5 scale
-        else:
-            score = 0
+#         if score_match:
+#             ai_score_10 = float(score_match.group(1))  # e.g. 7.5
+#             score = round(ai_score_10 / 2)  # convert to 0–5 scale
+#         else:
+#             score = 0
 
-        # 🗂 Save for Admin scoring table
-        StudentAnswerRecord.objects.create(
-            student=student,
-            thinkbell_question=question,
-            descriptive_answer=student_text,
-            ai_score=score,
-            points_awarded=score
-        )
+#         # 🗂 Save for Admin scoring table
+#         StudentAnswerRecord.objects.create(
+#             student=student,
+#             thinkbell_question=question,
+#             descriptive_answer=student_text,
+#             ai_score=score,
+#             points_awarded=score
+#         )
 
-        # ➕ Update total score
-        student.total_score += score
-        student.save()
+#         # ➕ Update total score
+#         student.total_score += score
+#         student.save()
 
-    return render(request, 'exam.html', {
-        'question': question,
-        'result': result
-    })
+#     return render(request, 'exam.html', {
+#         'question': question,
+#         'result': result
+#     })
 
 
 
@@ -845,42 +836,42 @@ def add_points(student, points):
 
 
 
-def submit_quizclub_mcq(request, question_id):
-    question = get_object_or_404(SlideQuestion, id=question_id)
+# def submit_quizclub_mcq(request, question_id):
+#     question = get_object_or_404(SlideQuestion, id=question_id)
 
-    if request.method == "POST":
-        selected_option = request.POST.get("selected_option")
+#     if request.method == "POST":
+#         selected_option = request.POST.get("selected_option")
 
-        email = request.session.get("email")
-        if not email:
-            return HttpResponse("Student not logged in")
+#         email = request.session.get("email")
+#         if not email:
+#             return HttpResponse("Student not logged in")
 
-        student = StudentProfile.objects.get(email=email)
+#         student = StudentProfile.objects.get(email=email)
 
-        correct = question.correct_option == selected_option
-        points = 1 if correct else 0
+#         correct = question.correct_option == selected_option
+#         points = 1 if correct else 0
 
-        already = StudentAnswerRecord.objects.filter(
-            student=student,
-            slide_question=question
-        ).exists()
+#         already = StudentAnswerRecord.objects.filter(
+#             student=student,
+#             slide_question=question
+#         ).exists()
 
-        if already:
-            return HttpResponse("You already answered this question")
+#         if already:
+#             return HttpResponse("You already answered this question")
 
-        StudentAnswerRecord.objects.create(
-            student=student,
-            slide_question=question,
-            selected_option=selected_option,
-            is_correct=correct,
-            points_awarded=points
-        )
+#         StudentAnswerRecord.objects.create(
+#             student=student,
+#             slide_question=question,
+#             selected_option=selected_option,
+#             is_correct=correct,
+#             points_awarded=points
+#         )
 
-        add_points(student, points)
+#         add_points(student, points)
 
-        return HttpResponse("Answer submitted")
+#         return HttpResponse("Answer submitted")
 
-    return HttpResponse("Invalid request")
+#     return HttpResponse("Invalid request")
 
 
 
@@ -1677,140 +1668,140 @@ class SubmitNewsBytesMCQAPI(APIView):
         })
 
 
-class AIExamAPI(APIView):
+# class AIExamAPI(APIView):
 
-    @swagger_auto_schema(
-        operation_description="Submit Descriptive Answer for AI Evaluation",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            required=["email", "question_number", "student_answer"],
-            properties={
-                "email": openapi.Schema(type=openapi.TYPE_STRING, example="student@gmail.com"),
-                "question_number": openapi.Schema(type=openapi.TYPE_INTEGER, example=1),
-                "student_answer": openapi.Schema(type=openapi.TYPE_STRING, example="I would save the civilian because it is the right thing to do."),
-            },
-        ),
-    )
-    def post(self, request):
-        email = request.data.get("email")
-        question_number = request.data.get("question_number")
-        student_text = request.data.get("student_answer")
+#     @swagger_auto_schema(
+#         operation_description="Submit Descriptive Answer for AI Evaluation",
+#         request_body=openapi.Schema(
+#             type=openapi.TYPE_OBJECT,
+#             required=["email", "question_number", "student_answer"],
+#             properties={
+#                 "email": openapi.Schema(type=openapi.TYPE_STRING, example="student@gmail.com"),
+#                 "question_number": openapi.Schema(type=openapi.TYPE_INTEGER, example=1),
+#                 "student_answer": openapi.Schema(type=openapi.TYPE_STRING, example="I would save the civilian because it is the right thing to do."),
+#             },
+#         ),
+#     )
+#     def post(self, request):
+#         email = request.data.get("email")
+#         question_number = request.data.get("question_number")
+#         student_text = request.data.get("student_answer")
 
-        # 1. Validation
-        missing_fields = [f for f, v in [("email", email), ("question_number", question_number), ("student_answer", student_text)] if not v]
-        if missing_fields:
-            return Response({"error": f"Missing fields: {', '.join(missing_fields)}"}, status=400)
+#         # 1. Validation
+#         missing_fields = [f for f, v in [("email", email), ("question_number", question_number), ("student_answer", student_text)] if not v]
+#         if missing_fields:
+#             return Response({"error": f"Missing fields: {', '.join(missing_fields)}"}, status=400)
 
-        student = get_object_or_404(StudentProfile, email=email)
-        questions = Question.objects.all().order_by("id")
+#         student = get_object_or_404(StudentProfile, email=email)
+#         questions = Question.objects.all().order_by("id")
 
-        try:
-            q_num = int(question_number)
-            question = questions[q_num - 1]
-        except (ValueError, IndexError):
-            return Response({"error": "Invalid question_number"}, status=400)
+#         try:
+#             q_num = int(question_number)
+#             question = questions[q_num - 1]
+#         except (ValueError, IndexError):
+#             return Response({"error": "Invalid question_number"}, status=400)
 
-        # 2. Prevent Multiple Attempts
-        already = StudentAnswerRecord.objects.filter(
-            student=student,
-            thinkbell_question=question
-        ).exists()
+#         # 2. Prevent Multiple Attempts
+#         already = StudentAnswerRecord.objects.filter(
+#             student=student,
+#             thinkbell_question=question
+#         ).exists()
 
-        if already:
-            return Response({"message": "Already answered"}, status=400)
+#         if already:
+#             return Response({"message": "Already answered"}, status=400)
 
-        # 3. AI Evaluation Prompt
-        prompt = f"""
-Analyze this student's answer based on the question.
+#         # 3. AI Evaluation Prompt
+#         prompt = f"""
+# Analyze this student's answer based on the question.
 
-Question: {question.text}
-Student Answer: {student_text}
+# Question: {question.text}
+# Student Answer: {student_text}
 
-Above is the question and answer by a student. Now give report in below format
+# Above is the question and answer by a student. Now give report in below format
 
-Gallup – Thinking & Decision-Making Report
+# Gallup – Thinking & Decision-Making Report
 
-Purpose: This report helps parents understand how their child thinks, reasons, and makes decisions in challenging situations.
+# Purpose: This report helps parents understand how their child thinks, reasons, and makes decisions in challenging situations.
 
-Scenario Summary:
-Write a short summary of the situation.
+# Scenario Summary:
+# Write a short summary of the situation.
 
-Student’s Decision
-Explain what the student decided.
+# Student’s Decision
+# Explain what the student decided.
 
-Detailed Evaluation
+# Detailed Evaluation
 
-Area Assessed – Observation
-Understanding of Situation –
-Decision Clarity –
-Reasoning Ability –
-Values Shown –
-Empathy & Responsibility –
+# Area Assessed – Observation
+# Understanding of Situation –
+# Decision Clarity –
+# Reasoning Ability –
+# Values Shown –
+# Empathy & Responsibility –
 
-Final Thinking Score
-Give score like 7.5 / 10
+# Final Thinking Score
+# Give score like 7.5 / 10
 
-Strong Points
-Give 3 bullet points
+# Strong Points
+# Give 3 bullet points
 
-Thinking Style Identified
-One line
+# Thinking Style Identified
+# One line
 
-Areas to Work On
-Give 2 bullet points
+# Areas to Work On
+# Give 2 bullet points
 
-Parent Note
-2–3 lines for parents
-"""
+# Parent Note
+# 2–3 lines for parents
+# """
 
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        response = model.generate_content(prompt)
+#         model = genai.GenerativeModel("gemini-2.5-flash")
+#         response = model.generate_content(prompt)
 
-        if response and hasattr(response, "text"):
-            ai_result = re.sub(r"\*+", "", response.text).strip()
-        else:
-            ai_result = "AI could not generate feedback"
+#         if response and hasattr(response, "text"):
+#             ai_result = re.sub(r"\*+", "", response.text).strip()
+#         else:
+#             ai_result = "AI could not generate feedback"
 
-        # 4. Extract Score
-        score_match = re.search(r'(\d+(\.\d+)?)\s*/\s*10', ai_result)
+#         # 4. Extract Score
+#         score_match = re.search(r'(\d+(\.\d+)?)\s*/\s*10', ai_result)
 
-        if score_match:
-            ai_score_10 = float(score_match.group(1))
-            score = round(ai_score_10 / 2)  # Convert to 0–5 scale
-        else:
-            score = 0
+#         if score_match:
+#             ai_score_10 = float(score_match.group(1))
+#             score = round(ai_score_10 / 2)  # Convert to 0–5 scale
+#         else:
+#             score = 0
 
-        # 5. Save to Database
-        StudentAnswerRecord.objects.create(
-            student=student,
-            thinkbell_question=question,
-            descriptive_answer=student_text,
-            ai_score=score,
-            points_awarded=score
-        )
+#         # 5. Save to Database
+#         StudentAnswerRecord.objects.create(
+#             student=student,
+#             thinkbell_question=question,
+#             descriptive_answer=student_text,
+#             ai_score=score,
+#             points_awarded=score
+#         )
 
-        student.total_score += score
-        student.save()
+#         student.total_score += score
+#         student.save()
 
-        # 6. Check Completion Status
-        total = questions.count()
-        attempted = StudentAnswerRecord.objects.filter(
-            student=student,
-            thinkbell_question__isnull=False
-        ).count()
+#         # 6. Check Completion Status
+#         total = questions.count()
+#         attempted = StudentAnswerRecord.objects.filter(
+#             student=student,
+#             thinkbell_question__isnull=False
+#         ).count()
 
-        completed = (total > 0 and attempted >= total)
-        task_msg = "All AI tasks completed successfully!" if completed else "AI Analysis saved."
+#         completed = (total > 0 and attempted >= total)
+#         task_msg = "All AI tasks completed successfully!" if completed else "AI Analysis saved."
 
-        return Response({
-            "question": question.text,
-            "student_answer": student_text,
-            "ai_feedback": ai_result,
-            "score_awarded": score,
-            "total_score": student.total_score,
-            "completed": completed,
-            "task_status": task_msg
-        })
+#         return Response({
+#             "question": question.text,
+#             "student_answer": student_text,
+#             "ai_feedback": ai_result,
+#             "score_awarded": score,
+#             "total_score": student.total_score,
+#             "completed": completed,
+#             "task_status": task_msg
+#         })
 
 
 from rest_framework.permissions import AllowAny
@@ -2284,3 +2275,148 @@ def add_quiz_club_section(request):
     return redirect("quiz_club")
 
 
+# class CompleteQuizModuleAPI(APIView):
+
+#     def post(self, request):
+
+#         email = request.data.get("email")
+#         module_id = request.data.get("module_id")
+
+#         student, _ = StudentProfile.objects.get_or_create(email=email)
+
+#         module = get_object_or_404(SlideQuestion, id=module_id)
+
+#         already = StudentAnswerRecord.objects.filter(
+#             student=student,
+#             slide_question=module
+#         ).exists()
+
+#         if already:
+#             return Response({"message": "Module already completed"})
+
+#         StudentAnswerRecord.objects.create(
+#             student=student,
+#             slide_question=module
+#         )
+
+#         return Response({
+#             "module_completed": True
+#         })
+
+
+# class QuizClubModuleAPI(APIView):
+
+#     def get(self, request):
+
+#         module_id = request.GET.get("module_id")
+
+#         module = get_object_or_404(SlideQuestion, id=module_id)
+
+#         slides = []
+
+#         for slide in module.slides.all().order_by("order"):
+
+#             slides.append({
+#                 "slide_id": slide.id,
+#                 "slide_text": slide.text_content,
+#                 "slide_image": slide.image.url if slide.image else None,
+#                 "slide_order": slide.order
+#             })
+
+#         return Response({
+#             "module_id": module.id,
+#             "module_title": module.title,
+#             "slides": slides
+#         })
+    
+
+# class NextQuizModuleAPI(APIView):
+
+#     def get(self, request):
+
+#         email = request.GET.get("email")
+#         section_id = request.GET.get("section_id")
+
+#         student = get_object_or_404(StudentProfile, email=email)
+
+#         modules = SlideQuestion.objects.filter(
+#             section_id=section_id
+#         ).order_by("id")
+
+#         attempted = StudentAnswerRecord.objects.filter(
+#             student=student,
+#             slide_question__section_id=section_id
+#         ).values_list("slide_question_id", flat=True)
+
+#         for module in modules:
+#             if module.id not in attempted:
+#                 return Response({
+#                     "next_module_id": module.id
+#                 })
+
+#         return Response({
+#             "section_completed": True
+#         })
+
+
+class QuizClubModuleAPI(APIView):
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                'section_id',
+                openapi.IN_QUERY,
+                description="QuizClub Section ID",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            ),
+            openapi.Parameter(
+                'module_id',
+                openapi.IN_QUERY,
+                description="Next module ID (optional)",
+                type=openapi.TYPE_INTEGER,
+                required=False
+            ),
+        ]
+    )
+    def get(self, request):
+
+        section_id = request.GET.get("section_id")
+        module_id = request.GET.get("module_id")
+
+        if not section_id:
+            return Response({"error": "section_id required"}, status=400)
+
+        section = get_object_or_404(AppSection, id=section_id, section_type='QC')
+
+        modules = SlideQuestion.objects.filter(section=section).order_by("id")
+
+        if not modules.exists():
+            return Response({"error": "No modules found"}, status=404)
+
+        # FIRST MODULE
+        if not module_id:
+            module = modules.first()
+        else:
+            module = get_object_or_404(SlideQuestion, id=module_id, section=section)
+
+        slides = []
+        for slide in module.slides.all().order_by("order"):
+            slides.append({
+                "slide_id": slide.id,
+                "slide_text": slide.text_content,
+                "slide_image": slide.image.url if slide.image else None,
+                "slide_order": slide.order
+            })
+
+        next_module = modules.filter(id__gt=module.id).first()
+
+        return Response({
+            "section_id": section.id,
+            "section_name": section.name,
+            "module_id": module.id,
+            "module_title": module.title,
+            "slides": slides,
+            "next_module_id": next_module.id if next_module else None,
+            "section_completed": False if next_module else True
+        })
