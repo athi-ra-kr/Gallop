@@ -1,0 +1,104 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <title>Gallop Admin | Manage ThinkBell Modules</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #FF6B00;
+            --bg-body: #F8F9FF;
+            --text-dark: #1B254B;
+            --text-grey: #A3AED0;
+            --white: #FFFFFF;
+            --border: #F1F4F9;
+            --shadow: 0 10px 40px rgba(112, 144, 176, 0.12);
+        }
+         body { font-family: 'Outfit', sans-serif; background: var(--bg-body); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+
+        .sidebar { width: 270px; height: 100vh; background: var(--white); position: fixed; border-right: 1px solid var(--border); z-index: 1000; display: flex; flex-direction: column; }
+        .logo-box { padding: 30px; }
+        .logo-box img { width: 130px; }
+        .menu-scroll { padding: 0 20px; flex-grow: 1; overflow-y: auto; }
+        .menu-scroll::-webkit-scrollbar { width: 4px; }
+        .menu-scroll::-webkit-scrollbar-thumb { background: #E0E5F2; border-radius: 10px; }
+
+        .sidebar-label { font-size: 10px; font-weight: 800; color: var(--text-grey); text-transform: uppercase; margin: 25px 0 12px 15px; letter-spacing: 1.2px; }
+        .nav-item { display: flex; align-items: center; padding: 12px 18px; color: var(--text-grey); text-decoration: none; font-weight: 600; font-size: 13.5px; border-radius: 15px; margin-bottom: 4px; transition: 0.3s; }
+        .nav-item i { margin-right: 12px; font-size: 16px; width: 22px; text-align: center; }
+        .nav-item.active, .nav-item:hover { background: var(--primary); color: white; box-shadow: 0 8px 16px rgba(255, 107, 0, 0.2); }
+
+        .sidebar-footer { padding: 20px; border-top: 1px solid color: #FF4D4D;; }
+        .logout-btn { display: flex; align-items: center; padding: 12px 18px; color: #FF4D4D;; text-decoration: none; font-weight: 700; background: #FFF5F5; border-radius: 14px; font-size: 13px; }
+
+
+        .main-content { margin-left: 270px; flex-grow: 1; height: 100vh; overflow-y: auto; padding: 40px; box-sizing: border-box; }
+        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .btn-add { background: var(--primary); color: white; padding: 12px 24px; border-radius: 14px; text-decoration: none; font-weight: 700; font-size: 13px; }
+
+        .list-card { background: var(--white); border-radius: 24px; padding: 25px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+        table { width: 100%; bordFer-collapse: collapse; }
+        th { text-align: left; color: var(--text-grey); padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; }
+        td { padding: 15px 10px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 13px; color: var(--text-dark); }
+        .badge-count { background: #F4F7FE; color: var(--primary); padding: 4px 10px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo-box"><img src="{% static 'Gallop Logo 2 (1) - Copy.png' %}" alt="Logo"></div>
+        <div class="menu-scroll">
+            <div class="sidebar-label">Main System</div>
+            <a href="{% url 'dashboard' %}" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
+            <a href="{% url 'thinkbell' %}" class="nav-item active"><i class="fas fa-brain"></i> ThinkBell</a>
+            <a href="{% url 'quiz_club' %}" class="nav-item"><i class="fas fa-trophy"></i> Quiz Club</a>
+            <a href="{% url 'newsbytes' %}" class="nav-item"><i class="fas fa-bolt"></i> NewsBytes</a>
+            <div class="sidebar-label">Engagement</div>
+            <a href="{% url 'announcements' %}" class="nav-item"><i class="fas fa-bullhorn"></i> Announcements</a>
+            <a href="{% url 'quiz_shows' %}" class="nav-item"><i class="fas fa-play-circle"></i> Quiz Shows</a>
+         <div class="sidebar-label">Reports</div>
+            <a href="{% url 'all_students' %}" class="nav-item {% if request.resolver_match.url_name == 'all_students' %}active{% endif %}">
+          <i class="fas fa-users"></i> Students List
+            </a>
+              </div>
+
+        </div>
+        <div class="sidebar-footer">
+            <a href="{% url 'admin_logout' %}" class="logout-btn"><i class="fas fa-power-off" style="margin-right:12px;"></i> Sign Out</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="header-flex">
+            <div>
+                <h1>Section: {{ section.name }}</h1>
+                <p style="color: var(--text-grey);">Manage Story Modules</p>
+            </div>
+            <a href="{% url 'add_thinkbell_question' section.id %}" class="btn-add"><i class="fas fa-plus"></i> Add New Module</a>
+        </div>
+
+        <div class="list-card">
+            <table>
+                <thead>
+                    <tr><th style="width: 40px;">#</th><th>Module Title</th><th>Learning Slides</th><th style="text-align: right;">Actions</th></tr>
+                </thead>
+                <tbody>
+                    {% for q in questions %}
+                    <tr>
+                        <td style="color: var(--text-grey);">{{ forloop.counter }}</td>
+                        <td>{{ q.title }}</td>
+                        <td><span class="badge-count">{{ q.slides.count }} Slides</span></td>
+                        <td style="text-align: right;">
+                            <a href="{% url 'edit_thinkbell_question' q.id %}" style="color: #4A90E2; text-decoration:none; margin-left: 15px;">Edit</a>
+                            <a href="{% url 'delete_thinkbell_question' q.id %}" style="color: #EE5D50; text-decoration:none; margin-left: 15px;" onclick="return confirm('Delete module?')">Delete</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>

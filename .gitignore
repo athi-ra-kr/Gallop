@@ -1,0 +1,17 @@
+# Django
+db.sqlite3
+media/
+staticfiles/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual Environment
+venv/
+
+# Environment variables
+.env
+
+# Firebase key
+gallop_app/firebase-key.json

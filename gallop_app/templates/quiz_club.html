@@ -1,0 +1,331 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <title>Gallop Admin | Quiz Club Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #FF6B00;
+            --primary-hover: #E05E00;
+            --primary-glass: rgba(255, 107, 0, 0.1);
+            --bg-body: #F8F9FF;
+            --text-dark: #1B254B;
+            --text-grey: #A3AED0;
+            --white: #FFFFFF;
+            --border: #F1F4F9;
+            --shadow: 0 10px 40px rgba(112, 144, 176, 0.12);
+            --danger: #EE5D50;
+            --btn-bg: #F4F7FE;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-body);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            color: var(--text-dark);
+            overflow: hidden;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar { 
+            width: 270px; 
+            height: 100vh; 
+            background: var(--white); 
+            position: fixed; 
+            border-right: 1px solid var(--border); 
+            z-index: 1000; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        .logo-box { padding: 30px; }
+        .logo-box img { width: 130px; }
+        .menu-scroll { padding: 0 20px; flex-grow: 1; overflow-y: auto; scrollbar-width: none; }
+        .menu-scroll::-webkit-scrollbar { display: none; }
+
+        .sidebar-label { 
+            font-size: 10px; 
+            font-weight: 800; 
+            color: var(--text-grey); 
+            text-transform: uppercase; 
+            margin: 25px 0 12px 15px; 
+            letter-spacing: 1.2px; 
+        }
+        .nav-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 12px 18px; 
+            color: var(--text-grey); 
+            text-decoration: none; 
+            font-weight: 600; 
+            font-size: 13.5px; 
+            border-radius: 15px; 
+            margin-bottom: 4px; 
+            transition: 0.3s; 
+        }
+        .nav-item i { margin-right: 12px; font-size: 16px; width: 22px; text-align: center; }
+        .nav-item.active, .nav-item:hover { 
+            background: var(--primary); 
+            color: white; 
+            box-shadow: 0 8px 16px rgba(255, 107, 0, 0.2); 
+        }
+
+        .sidebar-footer { padding: 20px; border-top: 1px solid var(--border); }
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            padding: 12px 18px;
+            color: #FF4D4D;
+            text-decoration: none;
+            font-weight: 700;
+            background: #FFF5F5;
+            border-radius: 14px;
+            font-size: 13px;
+        }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            margin-left: 270px;
+            padding: 40px;
+            width: calc(100% - 270px);
+            height: 100vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+            scrollbar-width: none;
+        }
+        .main-content::-webkit-scrollbar { display: none; }
+
+        .page-header h1 { font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
+        .page-header p { color: var(--text-grey); margin: 5px 0 35px 0; font-size: 14px; }
+
+        /* --- FORM STYLING --- */
+        .create-form {
+            background: var(--white); 
+            padding: 20px; 
+            border-radius: 20px;
+            display: flex; 
+            gap: 15px; 
+            margin-bottom: 40px; 
+            align-items: center; 
+            box-shadow: var(--shadow);
+        }
+        .create-form input[type="text"] { 
+            flex: 1; 
+            padding: 12px 16px; 
+            border: 1px solid var(--border); 
+            border-radius: 12px; 
+            outline: none; 
+            font-family: 'Outfit';
+        }
+        .btn-create {
+            background: var(--primary); 
+            color: white; 
+            border: none;
+            padding: 12px 24px; 
+            border-radius: 12px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: 0.3s;
+        }
+        .btn-create:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+        /* --- SECTION GRID & CARDS --- */
+        .section-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
+        .section-card {
+            background: var(--white); 
+            padding: 30px; 
+            border-radius: 24px;
+            box-shadow: var(--shadow); 
+            position: relative; 
+            border: 1px solid transparent; 
+            transition: 0.3s;
+        }
+        .section-card:hover { transform: translateY(-5px); border-color: var(--primary); }
+
+        .delete-btn {
+            position: absolute; top: -10px; left: -10px; width: 32px; height: 32px;
+            background: var(--danger); color: white; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            text-decoration: none; font-size: 14px; z-index: 10; border: 2px solid white;
+            box-shadow: 0 4px 10px rgba(238, 93, 80, 0.3);
+        }
+
+        .badge { padding: 5px 12px; border-radius: 8px; font-size: 10px; font-weight: 800; position: absolute; top: 25px; right: 25px; text-transform: uppercase; }
+        .badge-premium { background: #FFF4DE; color: var(--primary); }
+        .badge-free { background: #E6FFFA; color: #01B574; }
+
+        /* --- EDITING UI --- */
+        .edit-input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid var(--primary);
+            font-family: 'Outfit';
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 10px;
+            outline: none;
+        }
+        .action-row { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-edit-small {
+            background: var(--btn-bg);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            color: var(--text-dark);
+            transition: 0.2s;
+        }
+        .btn-edit-small:hover { background: #e2e8f0; }
+        .btn-save-small {
+            background: #01B574;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-manage-fixed {
+            display: block; text-align: center;
+            background: var(--btn-bg);
+            color: var(--text-dark);
+            padding: 14px; border-radius: 15px; text-decoration: none; font-weight: 800;
+            margin-top: 25px; font-size: 13px; transition: 0.3s;
+        }
+        .btn-manage-fixed:hover {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(255, 107, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="logo-box"><img src="{% static 'Gallop Logo 2 (1) - Copy.png' %}" alt="Logo"></div>
+        <div class="menu-scroll">
+            <div class="sidebar-label">Main System</div>
+            <a href="{% url 'dashboard' %}" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
+            <a href="{% url 'thinkbell' %}" class="nav-item"><i class="fas fa-brain"></i> ThinkBell</a>
+            <a href="{% url 'quiz_club' %}" class="nav-item active"><i class="fas fa-trophy"></i> Quiz Club</a>
+            <a href="{% url 'newsbytes' %}" class="nav-item"><i class="fas fa-bolt"></i> NewsBytes</a>
+
+            <div class="sidebar-label">Engagement</div>
+            <a href="{% url 'announcements' %}" class="nav-item"><i class="fas fa-bullhorn"></i> Announcements</a>
+            <a href="{% url 'quiz_shows' %}" class="nav-item"><i class="fas fa-play-circle"></i> Quiz Shows</a>
+
+            <div class="sidebar-label">Reports</div>
+            <a href="{% url 'all_students' %}" class="nav-item">
+                <i class="fas fa-users"></i> Students List
+            </a>
+        </div>
+        <div class="sidebar-footer">
+            <a href="{% url 'admin_logout' %}" class="logout-btn"><i class="fas fa-power-off" style="margin-right:12px;"></i> Sign Out</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Quiz Club Management</h1>
+            <p>Create and organize quiz sections for your students.</p>
+        </div>
+
+        <form action="{% url 'add_quiz_club_section' %}" method="POST" class="create-form">
+            {% csrf_token %}
+            <input type="text" name="section_name" placeholder="New Quiz Section (e.g. Science Bowl 2026)" required>
+            <label style="font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-grey);">
+                <input type="checkbox" name="is_premium" value="True" style="accent-color: var(--primary);"> Premium Access
+            </label>
+            <button type="submit" class="btn-create">Create Section</button>
+        </form>
+
+        <div class="section-grid">
+            {% for s in sections %}
+            <div class="section-card">
+                <a href="{% url 'delete_section' s.id %}" class="delete-btn" onclick="return confirm('Delete this section?')">
+                    <i class="fas fa-times"></i>
+                </a>
+                
+                <span class="badge {% if s.is_premium %}badge-premium{% else %}badge-free{% endif %}">
+                    {% if s.is_premium %}Premium{% else %}Free{% endif %}
+                </span>
+
+                <h3 id="name-text-{{ s.id }}" style="margin: 0; font-size: 20px; font-weight: 700;">{{ s.name }}</h3>
+                
+                <input type="text" id="name-input-{{ s.id }}" class="edit-input" value="{{ s.name }}" style="display:none;">
+
+                <div class="action-row">
+                    <button onclick="enableEdit({{ s.id }})" id="edit-btn-{{ s.id }}" class="btn-edit-small">
+                        <i class="fas fa-edit"></i> Edit Name
+                    </button>
+                    <button onclick="saveSection({{ s.id }})" id="save-btn-{{ s.id }}" class="btn-save-small" style="display:none;">
+                        <i class="fas fa-check"></i> Save
+                    </button>
+                </div>
+
+                <p style="color: var(--text-grey); font-size: 13px; margin-top: 15px; font-weight: 500;">
+                    <i class="far fa-folder" style="margin-right: 5px;"></i> Section ID: {{ s.id }}
+                </p>
+                
+                <a href="{% url 'manage_quiz_club_questions' s.id %}" class="btn-manage-fixed">Manage Content</a>
+            </div>
+            {% empty %}
+            <div style="grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--text-grey); background: var(--white); border-radius: 24px; box-shadow: var(--shadow);">
+                <i class="fas fa-plus-circle" style="font-size: 40px; margin-bottom: 15px; opacity: 0.3;"></i>
+                <p style="font-weight: 600;">No quiz sections available. Create your first one above!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+
+    <script>
+        function enableEdit(id) {
+            document.getElementById('name-text-' + id).style.display = 'none';
+            document.getElementById('name-input-' + id).style.display = 'block';
+            document.getElementById('edit-btn-' + id).style.display = 'none';
+            document.getElementById('save-btn-' + id).style.display = 'inline-block';
+            document.getElementById('name-input-' + id).focus();
+        }
+
+        function saveSection(id) {
+            let name = document.getElementById('name-input-' + id).value;
+
+            fetch(`/quiz-club/update-section/${id}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({ name: name })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('name-text-' + id).innerText = name;
+                    // Reset UI
+                    document.getElementById('name-text-' + id).style.display = 'block';
+                    document.getElementById('name-input-' + id).style.display = 'none';
+                    document.getElementById('edit-btn-' + id).style.display = 'inline-block';
+                    document.getElementById('save-btn-' + id).style.display = 'none';
+                } else {
+                    alert("Error updating section. Please try again.");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Something went wrong.");
+            });
+        }
+    </script>
+</body>
+</html>

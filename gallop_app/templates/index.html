@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallop </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <meta name="robots" content="noindex">
+
+    <style>
+        body { background: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
+
+        .view-section { display: none; height: 100vh; width: 100vw; }
+        .view-section.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 40px; border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            text-align: center; width: 90%; max-width: 400px;
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+
+        .btn-google {
+            background: #fff; border: 2px solid #e2e8f0; color: #1e293b;
+            padding: 12px; border-radius: 12px; font-weight: 700;
+            width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+            transition: 0.2s; cursor: pointer; margin-bottom: 10px;
+        }
+        .btn-google:hover { background: #f1f5f9; border-color: #cbd5e1; }
+
+        .btn-backup {
+            background: transparent; border: none; color: #64748b;
+            font-size: 0.85rem; text-decoration: underline; cursor: pointer;
+        }
+        .btn-backup:hover { color: #0f172a; }
+
+        .btn-logout {
+            background: #fee2e2; color: #991b1b; border: none;
+            padding: 12px; border-radius: 12px; font-weight: 700; width: 100%;
+            cursor: pointer; transition: 0.2s;
+        }
+        .btn-logout:hover { background: #fecaca; }
+
+        .profile-pic { width: 90px; height: 90px; border-radius: 50%; border: 4px solid white; box-shadow: 0 10px 20px rgba(0,0,0,0.1); margin-bottom: 20px; }
+
+        #status-msg { font-size: 0.8rem; min-height: 20px; margin-top: 10px; color: #dc2626; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <div id="view-loading" class="view-section active" style="background: #fff;">
+        <div class="spinner-border text-warning" role="status"></div>
+    </div>
+
+    <div id="view-login" class="view-section" style="background: radial-gradient(circle at top, #fff7ed, #fff);">
+        <div class="glass-card">
+            <div class="mb-4 display-4" style="color: #FF6B00;"><i class="fas fa-horse-head"></i></div>
+            <h2 class="fw-bold mb-2">Gallop V1</h2>
+            <p class="text-muted mb-4">Sign in to enter the Gallop</p>
+
+            <button class="btn-google" id="btn-login-popup">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" width="20">
+                Continue with Google
+            </button>
+
+            <button class="btn-backup" id="btn-login-redirect">
+                Popup not working? Click here to use Redirect Login
+            </button>
+
+            <div id="status-msg"></div>
+        </div>
+    </div>
+
+    <div id="view-welcome" class="view-section" style="background: radial-gradient(circle at center, #fff, #f0fdfa);">
+        <div class="glass-card">
+            <img id="user-img" src="" class="profile-pic">
+            <h5 class="text-muted mb-0">Welcome to</h5>
+            <h1 class="fw-bolder mb-3" style="font-size: 2.5rem; background: linear-gradient(45deg, #FF6B00, #F59E0B); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Gallop</h1>
+            <p class="mb-4">Hello, <b id="user-name">User</b>!</p>
+            <button class="btn-logout" id="btn-logout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // CONFIGURATION
+        const firebaseConfig = {
+            apiKey: "AIzaSyAp1iiEOG9OMYUEwNED_GEhRBsgl4_yoNE",
+            authDomain: "gallopapp.firebaseapp.com",
+            projectId: "gallopapp",
+            storageBucket: "gallopapp.firebasestorage.app",
+            messagingSenderId: "471212713953",
+            appId: "1:471212713953:web:ca5d7260321ec061db14a0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        // Force account selection
+        provider.setCustomParameters({ prompt: 'select_account' });
+
+        // --- METHOD 1: POPUP (Smoother) ---
+        document.getElementById('btn-login-popup').addEventListener('click', () => {
+            document.getElementById('status-msg').innerText = "Opening Popup...";
+            signInWithPopup(auth, provider).catch((error) => {
+                console.error(error);
+                document.getElementById('status-msg').innerText = "Popup Failed: " + error.code + ". Try the Backup link below.";
+            });
+        });
+
+        // --- METHOD 2: REDIRECT (Backup - More Reliable) ---
+        document.getElementById('btn-login-redirect').addEventListener('click', () => {
+            document.getElementById('status-msg').innerText = "Redirecting...";
+            signInWithRedirect(auth, provider);
+        });
+
+        // --- AUTH LISTENER ---
+        // This handles the login success for BOTH methods
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('user-name').innerText = user.displayName;
+                document.getElementById('user-img').src = user.photoURL;
+                showView('view-welcome');
+            } else {
+                showView('view-login');
+            }
+        });
+
+        // LOGOUT
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            signOut(auth).then(() => location.reload());
+        });
+
+        function showView(id) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+    </script>
+</body>
+</html>

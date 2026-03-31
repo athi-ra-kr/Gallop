@@ -1,0 +1,233 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <title>Gallop Admin | {% if is_edit %}Edit{% else %}Create{% endif %} ThinkBell Module</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- ✅ KEEP YOUR EXISTING STYLE EXACTLY SAME -->
+    <style>
+        /* YOUR ORIGINAL STYLE – NO CHANGE */
+        :root {
+            --primary: #FF6B00;
+            --bg-body: #F8F9FF;
+            --text-dark: #1B254B;
+            --text-grey: #A3AED0;
+            --white: #FFFFFF;
+            --border: #F1F4F9;
+            --shadow: 0 10px 40px rgba(112, 144, 176, 0.12);
+        }
+
+        body::-webkit-scrollbar, .menu-scroll::-webkit-scrollbar { display: none; }
+        body, .menu-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-body);
+            margin: 0;
+            display: flex;
+            color: var(--text-dark);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 270px;
+            height: 100vh;
+            background: var(--white);
+            position: fixed;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+            z-index: 1000;
+        }
+
+        .logo-box { padding: 30px; display: flex; align-items: center; }
+        .logo-box img { width: 130px; }
+
+        .menu-scroll { flex-grow: 1; overflow-y: auto; padding: 0 20px; }
+
+        .sidebar-label {
+            font-size: 10px; font-weight: 800; color: var(--text-grey);
+            text-transform: uppercase; letter-spacing: 1.2px; margin: 25px 0 12px 15px;
+        }
+
+        .nav-item {
+            display: flex; align-items: center; padding: 12px 18px; color: var(--text-grey);
+            text-decoration: none; font-weight: 600; font-size: 13.5px; border-radius: 15px;
+            margin-bottom: 4px; transition: 0.3s;
+        }
+
+        .nav-item i { margin-right: 12px; font-size: 16px; width: 22px; text-align: center; }
+
+        .nav-item:hover, .nav-item.active {
+            background: var(--primary); color: white;
+            box-shadow: 0 8px 16px rgba(255, 107, 0, 0.25);
+        }
+
+        .sidebar-footer { padding: 20px; border-top: 1px solid var(--border); }
+        .logout-btn {
+            display: flex; align-items: center; padding: 12px 18px; color: #EE5D50;
+            text-decoration: none; font-weight: 700; background: #FFF5F5; border-radius: 14px; font-size: 13px;
+        }
+
+        .main-content {
+            margin-left: 270px;
+            padding: 40px;
+            width: calc(100% - 270px);
+            box-sizing: border-box;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .back-link {
+            display: inline-flex; align-items: center; text-decoration: none;
+            color: var(--text-grey); font-weight: 600; font-size: 14px; margin-bottom: 20px;
+        }
+        .back-link:hover { color: var(--primary); }
+
+        .form-card { background: white; border-radius: 25px; padding: 40px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 40px; }
+
+        label {
+            font-size: 11px; font-weight: 800; color: var(--text-grey);
+            text-transform: uppercase; display: block; margin-top: 25px; letter-spacing: 0.5px;
+        }
+
+        input, textarea, select {
+            width: 100%; padding: 14px; border: 1px solid var(--border);
+            border-radius: 12px; background: #F8F9FF; outline: none;
+            font-family: 'Outfit'; margin-top: 10px; box-sizing: border-box;
+        }
+
+        .slide-box { background: #FDFDFF; border-radius: 20px; padding: 30px; margin-top: 30px; border: 1px dashed #D1D9E8; position: relative; }
+        .btn-submit { background: var(--primary); color: white; border: none; width: 100%; padding: 20px; border-radius: 18px; font-weight: 800; margin-top: 40px; cursor: pointer; box-shadow: 0 8px 16px rgba(255, 107, 0, 0.2); transition: 0.3s; }
+    </style>
+</head>
+
+<body>
+
+<!-- ✅ SIDEBAR – UNCHANGED -->
+<nav class="sidebar">
+    <div class="logo-box">
+        <img src="{% static 'Gallop Logo 2 (1) - Copy.png' %}" alt="Logo">
+    </div>
+
+    <div class="menu-scroll">
+        <div class="sidebar-label">Main System</div>
+        <a href="{% url 'dashboard' %}" class="nav-item"><i class="fas fa-th-large"></i> Dashboard</a>
+        <a href="{% url 'thinkbell' %}" class="nav-item active"><i class="fas fa-brain"></i> ThinkBell</a>
+        <a href="{% url 'quiz_club' %}" class="nav-item"><i class="fas fa-trophy"></i> Quiz Club</a>
+        <a href="{% url 'newsbytes' %}" class="nav-item"><i class="fas fa-bolt"></i> NewsBytes</a>
+
+        <div class="sidebar-label">Engagement</div>
+        <a href="{% url 'announcements' %}" class="nav-item"><i class="fas fa-bullhorn"></i> Announcements</a>
+        <a href="{% url 'quiz_shows' %}" class="nav-item"><i class="fas fa-play-circle"></i> Quiz Shows</a>
+        <div class="sidebar-label">Reports</div>
+        <a href="{% url 'all_students' %}" class="nav-item"><i class="fas fa-users"></i> Students List</a>
+    </div>
+
+    <div class="sidebar-footer">
+        <a href="{% url 'admin_logout' %}" class="logout-btn">
+            <i class="fas fa-power-off" style="margin-right:12px;"></i> Sign Out
+        </a>
+    </div>
+</nav>
+
+<main class="main-content">
+
+    <a href="{% url 'manage_thinkbell_questions' section.id %}" class="back-link">
+        <i class="fas fa-arrow-left" style="margin-right:8px;"></i> Back to Module List
+    </a>
+
+    <h1>{% if is_edit %}Edit{% else %}Create{% endif %} ThinkBell Module</h1>
+
+    <form method="POST" enctype="multipart/form-data" class="form-card">
+        {% csrf_token %}
+
+        <label>Module Title</label>
+        <input type="text" name="title" value="{{ question.title }}" required>
+
+        <div id="slides-wrapper">
+
+            {% for slide in slides %}
+            <div class="slide-box">
+
+                <!-- ✅ IMPORTANT: SEND SLIDE ID -->
+                <input type="hidden" name="slide_id[]" value="{{ slide.id }}">
+
+                <span style="color:var(--primary); font-weight:800;">SLIDE #{{ forloop.counter }}</span>
+
+                {% if slide.image %}
+                    <div style="margin: 10px 0;">
+                        <img src="{{ slide.image.url }}" style="width:80px; border-radius:8px;">
+                    </div>
+                {% endif %}
+
+                <label>Change Image</label>
+                <input type="file" name="slide_image[]">
+
+                <label>Teaching Text</label>
+                <textarea name="slide_text[]" rows="3" required>{{ slide.text_content }}</textarea>
+
+            </div>
+            {% empty %}
+
+            <div class="slide-box">
+                <!-- ✅ NEW SLIDE ID EMPTY -->
+                <input type="hidden" name="slide_id[]" value="">
+                <span style="color:var(--primary); font-weight:800;">SLIDE #1</span>
+
+                <label>Slide Image</label>
+                <input type="file" name="slide_image[]">
+
+                <label>Teaching Text</label>
+                <textarea name="slide_text[]" rows="3" placeholder="Describe the lesson..." required></textarea>
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+        <button type="button" onclick="addSlide()" style="margin-top:20px; border:none; background:#E0E5F2; padding:12px; border-radius:12px; font-weight:700; cursor:pointer;">
+            + Add Slide
+        </button>
+
+        <button type="submit" class="btn-submit">Save Module Changes</button>
+
+    </form>
+</main>
+
+<script>
+let count = {{ slides.count|default:1 }};
+
+function addSlide() {
+    count++;
+
+    const wrapper = document.getElementById('slides-wrapper');
+    const div = document.createElement('div');
+    div.className = 'slide-box';
+
+    div.innerHTML = `
+        <i class="fas fa-times-circle" style="float:right; color:#EE5D50; cursor:pointer;" onclick="this.parentElement.remove()"></i>
+
+        <!-- ✅ EMPTY ID FOR NEW SLIDE -->
+        <input type="hidden" name="slide_id[]" value="">
+
+        <span style="color:var(--primary); font-weight:800;">SLIDE #${count}</span>
+
+        <label>Slide Image</label>
+        <input type="file" name="slide_image[]">
+
+        <label>Teaching Text</label>
+        <textarea name="slide_text[]" rows="3" required></textarea>
+    `;
+
+    wrapper.appendChild(div);
+}
+</script>
+
+</body>
+</html>

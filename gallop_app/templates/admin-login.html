@@ -1,0 +1,159 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallop Admin | Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="robots" content="noindex">
+    <style>
+        :root {
+            --accent: #FF6B00;       /* Gallop Orange */
+            --bg: #FFFFFF;           /* White Background */
+            --text-main: #1A1A1A;    /* Black Text */
+            --text-dim: #64748B;     /* Slate Gray */
+            --border: #EDF2F7;       /* Light Border */
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Login Card */
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 45px;
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03);
+            text-align: center;
+            background: #FAFAFA; /* Slight contrast for the card */
+        }
+
+        .logo-container img {
+            width: 130px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+        }
+
+        p.subtitle {
+            color: var(--text-dim);
+            font-size: 14px;
+            margin: 0 0 35px 0;
+        }
+
+        /* Form Inputs (Matching Quiz Club Style) */
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            color: var(--text-dim);
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input {
+            width: 100%;
+            background: #FFFFFF;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 16px;
+            border-radius: 12px;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            transition: 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(255, 107, 0, 0.08);
+        }
+
+        /* Button Styling (Matching Action Buttons) */
+        .btn-action {
+            width: 100%;
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 16px;
+            margin-top: 15px;
+            transition: 0.3s;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 107, 0, 0.25);
+        }
+
+        .error-message {
+            color: #EF4444;
+            background: #FEF2F2;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            text-align: left;
+            border: 1px solid #FECACA;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+
+
+        <h1>Admin Portal</h1>
+        <p class="subtitle">Secure access for Gallop management.</p>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            {% if error %}
+            <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i> {{ error }}
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" placeholder="Enter admin username" required>
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn-action">Login to Dashboard</button>
+        </form>
+    </div>
+
+</body>
+</html>
