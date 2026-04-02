@@ -122,7 +122,9 @@ urlpatterns = [
     path('thinkbell/update-section/<int:pk>/', views.update_thinkbell_section),
     path('newsbytes/update-section/<int:pk>/', views.update_news_section),
     path('students/toggle-premium/<str:email>/', views.toggle_premium, name='toggle_premium'),
-    
+    path('api/reset-quizclub/', views.ResetQuizClubAPI.as_view()),
+    path('api/reset-newsbytes/', views.ResetNewsBytesAPI.as_view()),
+    path('api/reset-thinkbell/', views.ResetThinkBellAPI.as_view()),
 ]
     
 

@@ -1465,26 +1465,20 @@ class QuizClubQuestionAPI(APIView):
         if section.is_premium and not student.is_premium:
             return Response({"error": "Upgrade to premium"}, status=403)
 
-        questions = SlideQuestion.objects.filter(section=section).order_by("id")
+        questions = SlideQuestion.objects.filter(section=section).prefetch_related('slides').order_by("id")
 
         attempted_ids = StudentAnswerRecord.objects.filter(
             student=student,
             slide_question__section=section
         ).values_list("slide_question_id", flat=True)
 
-        next_question = None
+        questions_data = []
+
         for q in questions:
-            if q.id not in attempted_ids:
-                next_question = q
-                break
-
-        # 🔥 ✅ MAIN FIX: IF COMPLETED → RESTART FROM FIRST QUESTION
-        if not next_question:
-
-            first_question = questions.first()
 
             slides_data = []
-            for slide in first_question.slides.all().order_by("order"):
+
+            for slide in q.slides.all().order_by("order"):
                 slides_data.append({
                     "slide_id": slide.id,
                     "slide_text": slide.text_content,
@@ -1492,61 +1486,33 @@ class QuizClubQuestionAPI(APIView):
                     "slide_order": slide.order
                 })
 
-            return Response({
-                "section_completed": True,   # ✅ show completed
-                "redo": True,                # ✅ allow redo
-
-                "section_id": section.id,
-                "section_name": section.name,
-                "user_is_premium": student.is_premium,
-                "section_is_premium": section.is_premium,
-
-                "question_id": first_question.id,
-                "question": first_question.title,
-                "slides": slides_data,
-
-                "options": {
-                    "A": first_question.option_a,
-                    "B": first_question.option_b,
-                    "C": first_question.option_c,
-                    "D": first_question.option_d,
-                },
-
-                "next_question_id": first_question.id
+            # ✅ OPTIONS REMOVED HERE
+            questions_data.append({
+                "question_id": q.id,
+                "question": q.title,
+                "slides": slides_data
             })
 
-        # 🔵 NORMAL FLOW
-        slides_data = []
-        for slide in next_question.slides.all().order_by("order"):
-            slides_data.append({
-                "slide_id": slide.id,
-                "slide_text": slide.text_content,
-                "slide_image": get_image_url(request, slide.image),
-                "slide_order": slide.order
-            })
+        total_questions = questions.count()
+        attempted_count = len(set(attempted_ids))
+        completed = total_questions > 0 and attempted_count == total_questions
 
         return Response({
-            "section_completed": False,   # ✅ still running
-
             "section_id": section.id,
             "section_name": section.name,
+
             "user_is_premium": student.is_premium,
             "section_is_premium": section.is_premium,
 
-            "question_id": next_question.id,
-            "question": next_question.title,
-            "slides": slides_data,
+            "total_questions": total_questions,
+            "attempted_questions": attempted_count,
 
-            "options": {
-                "A": next_question.option_a,
-                "B": next_question.option_b,
-                "C": next_question.option_c,
-                "D": next_question.option_d,
-            },
+            "completed": completed,
+            "redo": completed,
 
-            "next_question_id": get_next_question(section, student, "slide_question")
+            "questions": questions_data
         })
-
+    
 class SubmitQuizClubMCQAPI(APIView):
     authentication_classes = [CsrfExemptSessionAuthentication]
     permission_classes = [AllowAny]
@@ -1905,70 +1871,71 @@ class NewsBytesQuestionAPI(APIView):
         if not section_id or not email:
             return Response({"error": "section_id and email required"}, status=400)
 
+        # ✅ GET STUDENT
         student, _ = StudentProfile.objects.get_or_create(email=email)
+
+        # ✅ GET SECTION
         section = get_object_or_404(AppSection, id=section_id, section_type='NB')
 
+        # 🔐 PREMIUM CHECK
         if section.is_premium and not student.is_premium:
             return Response({"error": "Upgrade to premium"}, status=403)
 
+        # ✅ GET ALL QUESTIONS
         questions = MCQQuestion.objects.filter(section=section).order_by("id")
 
+        if not questions.exists():
+            return Response({"error": "No questions found"}, status=404)
+
+        # ✅ ATTEMPTED QUESTIONS
         attempted_ids = StudentAnswerRecord.objects.filter(
             student=student,
             news_question__section=section
         ).values_list("news_question_id", flat=True)
 
-        next_question = None
-        for q in questions:
-            if q.id not in attempted_ids:
-                next_question = q
-                break
+        # ==============================
+        # 🔥 RETURN ALL QUESTIONS + ANSWER
+        # ==============================
+        questions_data = []
 
-        # 🔥 ✅ MAIN FIX: IF COMPLETED → RESTART FROM FIRST QUESTION
-        if not next_question:
+        for index, q in enumerate(questions, start=1):
 
-            first_question = questions.first()
-
-            return Response({
-                "section_completed": True,   # ✅ show completed
-                "redo": True,                # ✅ allow redo
-
-                "section_id": section.id,
-                "section_name": section.name,
-
-                "question_id": first_question.id,
-                "question": first_question.content,
-                "image": get_image_url(request, first_question.image),
+            questions_data.append({
+                "question_id": q.id,
+                "question_number": index,
+                "question": q.content,
+                "image": get_image_url(request, q.image),
 
                 "options": {
-                    "A": first_question.option_a,
-                    "B": first_question.option_b,
-                    "C": first_question.option_c,
-                    "D": first_question.option_d,
+                    "A": q.option_a or "",
+                    "B": q.option_b or "",
+                    "C": q.option_c or "",
+                    "D": q.option_d or "",
                 },
 
-                "next_question_id": first_question.id
+                # ✅ ADD THIS (ANSWER)
+                "correct_answer": q.correct_option
             })
 
-        # 🔵 NORMAL FLOW
-        return Response({
-            "section_completed": False,   # ✅ still running
+        # ==============================
+        # ✅ COMPLETION LOGIC
+        # ==============================
+        total_questions = questions.count()
+        attempted_count = len(set(attempted_ids))
 
+        completed = total_questions > 0 and attempted_count == total_questions
+
+        return Response({
             "section_id": section.id,
             "section_name": section.name,
 
-            "question_id": next_question.id,
-            "question": next_question.content,
-            "image": get_image_url(request, next_question.image),
+            "total_questions": total_questions,
+            "attempted_questions": attempted_count,
 
-            "options": {
-                "A": next_question.option_a,
-                "B": next_question.option_b,
-                "C": next_question.option_c,
-                "D": next_question.option_d,
-            },
+            "completed": completed,
+            "redo": completed,
 
-            "next_question_id": get_next_question(section, student, "news_question")
+            "questions": questions_data
         })
     
 # =========================================================
@@ -2205,20 +2172,8 @@ class QuizClubModuleAPI(APIView):
 
     @swagger_auto_schema(
         manual_parameters=[
-            openapi.Parameter(
-                'section_id',
-                openapi.IN_QUERY,
-                description="QuizClub Section ID",
-                type=openapi.TYPE_INTEGER,
-                required=True
-            ),
-            openapi.Parameter(
-                'email',
-                openapi.IN_QUERY,
-                description="Student Email",
-                type=openapi.TYPE_STRING,
-                required=True
-            ),
+            openapi.Parameter('section_id', openapi.IN_QUERY, type=openapi.TYPE_INTEGER),
+            openapi.Parameter('email', openapi.IN_QUERY, type=openapi.TYPE_STRING),
         ]
     )
     def get(self, request):
@@ -2235,63 +2190,60 @@ class QuizClubModuleAPI(APIView):
         # ✅ GET SECTION
         section = get_object_or_404(AppSection, id=section_id, section_type='QC')
 
-        # 🔐 PREMIUM CHECK (ADDED)
+        # 🔐 PREMIUM CHECK
         if section.is_premium and not student.is_premium:
             return Response({"error": "Upgrade to premium"}, status=403)
 
-        modules = SlideQuestion.objects.filter(section=section).order_by("id")
+        # ✅ GET ALL MODULES
+        modules = SlideQuestion.objects.filter(section=section).prefetch_related('slides').order_by("id")
 
         if not modules.exists():
             return Response({"error": "No modules found"}, status=404)
 
-        # ✅ GET ATTEMPTED MODULES
-        attempted_ids = StudentAnswerRecord.objects.filter(
-            student=student,
-            slide_question__section=section
-        ).values_list("slide_question_id", flat=True)
+        modules_data = []
 
-        # ✅ FIND NEXT MODULE (AUTO)
-        module = None
-        for m in modules:
-            if m.id not in attempted_ids:
-                module = m
-                break
+        for index, m in enumerate(modules, start=1):
 
-        # 🔥 IF ALL COMPLETED → RESTART FIRST
-        if not module:
-            module = modules.first()
-            redo = True
-        else:
-            redo = False
+            slides_data = []
 
-        slides = []
-        for slide in module.slides.all().order_by("order"):
-            slides.append({
-                "slide_id": slide.id,
-                "slide_text": slide.text_content,
-                "slide_image": slide.image.url if slide.image else None,
-                "slide_order": slide.order
+            for slide in m.slides.all().order_by("order"):
+                slides_data.append({
+                    "slide_id": slide.id,
+                    "slide_text": slide.text_content,
+                    "slide_image": slide.image.url if slide.image else None,
+                    "slide_order": slide.order
+                })
+
+            # ✅ OPTIONS REMOVED HERE
+            modules_data.append({
+                "module_id": m.id,
+                "module_number": index,
+                "module_title": m.title,
+                "slides": slides_data
             })
 
-        next_module = modules.filter(id__gt=module.id).first()
+        # ✅ COMPLETION LOGIC
+        attempted = StudentAnswerRecord.objects.filter(
+            student=student,
+            slide_question__section=section
+        ).values("slide_question").distinct().count()
+
+        total = modules.count()
+        completed = total > 0 and attempted == total
 
         return Response({
             "section_id": section.id,
             "section_name": section.name,
 
-            "user_is_premium": student.is_premium,
-            "section_is_premium": section.is_premium,
+            "total_modules": total,
+            "attempted_modules": attempted,
 
-            "module_id": module.id,
-            "module_title": module.title,
-            "slides": slides,
+            "completed": completed,
+            "redo": completed,
 
-            "next_module_id": next_module.id if next_module else module.id,
-            "section_completed": False if next_module else True,
-            "redo": redo
+            "modules": modules_data
         })
-
-
+    
 from django.http import JsonResponse
 import json
 
@@ -2349,3 +2301,125 @@ def filter_sections_by_plan(student, section_type):
     
 
 
+@swagger_auto_schema(
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=["email", "section_id"],
+        properties={
+            "email": openapi.Schema(type=openapi.TYPE_STRING, example="test@gmail.com"),
+            "section_id": openapi.Schema(type=openapi.TYPE_INTEGER, example=1),
+        },
+    )
+)
+class ResetQuizClubAPI(APIView):
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["email", "section_id"],
+            properties={
+                "email": openapi.Schema(type=openapi.TYPE_STRING, example="test@gmail.com"),
+                "section_id": openapi.Schema(type=openapi.TYPE_INTEGER, example=1),
+            },
+        )
+    )
+    def post(self, request):
+
+        email = request.data.get("email")
+        section_id = request.data.get("section_id")
+
+        if not email or not section_id:
+            return Response({"error": "email and section_id required"}, status=400)
+
+        student, _ = StudentProfile.objects.get_or_create(email=email)
+        section = get_object_or_404(AppSection, id=section_id)
+
+        StudentAnswerRecord.objects.filter(
+            student=student,
+            slide_question__section=section
+        ).delete()
+
+        return Response({"message": "QuizClub reset successful"})
+
+
+
+@swagger_auto_schema(
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=["email", "section_id"],
+        properties={
+            "email": openapi.Schema(type=openapi.TYPE_STRING, example="test@gmail.com"),
+            "section_id": openapi.Schema(type=openapi.TYPE_INTEGER, example=1),
+        },
+    )
+)
+class ResetNewsBytesAPI(APIView):
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["email", "section_id"],
+            properties={
+                "email": openapi.Schema(type=openapi.TYPE_STRING, example="test@gmail.com"),
+                "section_id": openapi.Schema(type=openapi.TYPE_INTEGER, example=1),
+            },
+        )
+    )
+    def post(self, request):
+
+        email = request.data.get("email")
+        section_id = request.data.get("section_id")
+
+        if not email or not section_id:
+            return Response({"error": "email and section_id required"}, status=400)
+
+        student, _ = StudentProfile.objects.get_or_create(email=email)
+        section = get_object_or_404(AppSection, id=section_id)
+
+        StudentAnswerRecord.objects.filter(
+            student=student,
+            news_question__section=section
+        ).delete()
+
+        return Response({"message": "NewsBytes reset successful"})
+    
+@swagger_auto_schema(
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=["email", "section_id"],
+        properties={
+            "email": openapi.Schema(type=openapi.TYPE_STRING, example="test@gmail.com"),
+            "section_id": openapi.Schema(type=openapi.TYPE_INTEGER, example=1),
+        },
+    )
+)
+
+class ResetThinkBellAPI(APIView):
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["email", "section_id"],
+            properties={
+                "email": openapi.Schema(type=openapi.TYPE_STRING, example="test@gmail.com"),
+                "section_id": openapi.Schema(type=openapi.TYPE_INTEGER, example=1),
+            },
+        )
+    )
+    def post(self, request):
+
+        email = request.data.get("email")
+        section_id = request.data.get("section_id")
+
+        if not email or not section_id:
+            return Response({"error": "email and section_id required"}, status=400)
+
+        student, _ = StudentProfile.objects.get_or_create(email=email)
+        section = get_object_or_404(AppSection, id=section_id)
+
+        StudentAnswerRecord.objects.filter(
+            student=student,
+            slide_question__section=section
+        ).delete()
+
+        return Response({"message": "ThinkBell reset successful"})
